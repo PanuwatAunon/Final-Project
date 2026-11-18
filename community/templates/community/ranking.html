@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}อันดับผู้ใช้ - GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8">
+    <div class="mb-8 text-center md:text-left">
+        <h1 class="text-3xl font-bold text-gray-800 flex items-center justify-center md:justify-start">
+            <i class="fas fa-trophy text-yellow-500 mr-3"></i> อันดับผู้ใช้
+        </h1>
+        <p class="text-gray-500 mt-2">ตารางอันดับและคะแนนของผู้ใช้</p>
+    </div>
+
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gradient-to-r from-primary to-[#7c6fb8] text-white">
+                            <th class="p-4 font-semibold text-center w-24">อันดับ</th>
+                            <th class="p-4 font-semibold">ผู้ใช้</th>
+                            <th class="p-4 font-semibold">คะแนน</th>
+                            <th class="p-4 font-semibold text-right">แอ็กชัน</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for user in users %}
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="p-4 text-center font-bold text-lg">
+                                {% if forloop.counter == 1 %}
+                                <div
+                                    class="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center mx-auto">
+                                    <i class="fas fa-crown"></i>
+                                </div>
+                                {% elif forloop.counter == 2 %}
+                                <div
+                                    class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center mx-auto">
+                                    <i class="fas fa-medal"></i>
+                                </div>
+                                {% elif forloop.counter == 3 %}
+                                <div
+                                    class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto">
+                                    <i class="fas fa-medal"></i>
+                                </div>
+                                {% else %}
+                                <span class="text-gray-400">#{{ forloop.counter }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center">
+                                    {% if user.profile.avatar %}
+                                    <img src="{{ user.profile.avatar.url }}"
+                                        class="w-10 h-10 rounded-full object-cover mr-3 border border-gray-200"
+                                        alt="{{ user.username }}">
+                                    {% else %}
+                                    <div
+                                        class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3 text-gray-500">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <a href="{% url 'community:user_profile' user.username %}"
+                                            class="font-bold text-gray-800 hover:text-primary transition">
+                                            {{ user.username }}
+                                        </a>
+                                        <div class="text-xs text-gray-500 md:hidden">
+                                            {{ user.profile.get_rank }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center">
+                                    <span class="font-bold text-gray-800 mr-2">{{ user.profile.points }}</span>
+                                    <span
+                                        class="text-xs font-semibold px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">PTS</span>
+                                </div>
+                            </td>
+                            <td class="p-4 text-right space-x-2">
+                                <a href="{% url 'community:user_profile' user.username %}"
+                                    class="inline-flex items-center justify-center w-8 h-8 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition"
+                                    title="ดูโปรไฟล์">
+                                    <i class="fas fa-eye text-sm"></i>
+                                </a>
+                                {% if request.user.is_authenticated and user != request.user %}
+                                <a href="{% url 'community:add_friend' user.username %}"
+                                    class="inline-flex items-center justify-center w-8 h-8 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition"
+                                    title="เพิ่มเพื่อน">
+                                    <i class="fas fa-user-plus text-sm"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="p-8 text-center text-gray-500">
+                                <i class="fas fa-info-circle text-4xl mb-3 opacity-30"></i>
+                                <p>ยังไม่มีข้อมูลผู้ใช้ในระบบ</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

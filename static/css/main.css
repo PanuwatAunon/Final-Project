@@ -1,0 +1,117 @@
+/* ==========================================================================
+   🎮 COMMUGAME BUNDLED MAIN STYLESHEET (main.css)
+   ==========================================================================
+   ไฟล์นี้เป็นศูนย์รวมสไตล์ (CSS Bundle) ทั้งหมดของโปรเจกต์ commuGame
+   
+   รายการ CSS และทรัพยากรที่ถูกมัดรวมอยู่ภายในไฟล์นี้:
+   --------------------------------------------------------------------------
+   1. Google Fonts:
+      - Prompt (Weights: 300, 400, 500, 600, 700)
+      - Inter (Weights: 300, 400, 500, 600, 700)
+   2. Icon Libraries:
+      - Font Awesome 6.4.0 (สำหรับไอคอนฝั่งผู้ใช้ Frontend)
+      - Google Material Symbols Outlined (สำหรับไอคอนฝั่งผู้ดูแลระบบ Admin)
+   3. Custom Design Tokens & Variables (ระบบโทนสีหลักของเว็บ):
+      - Primary Color: #7F77DD
+      - Mint Accent: #1D9E75
+      - Pink Accent: #D4537E
+      - Yellow/Orange Accent: #EF9F27
+      - Danger Red: #E24B4A
+      - Background Body: #F1EFE8
+      - Text Dark: #2C2C2A / Subtext: #5F5E5A
+   4. Base Layout & Typography (กำหนดฟอนต์และพื้นหลังมาตรฐาน)
+   5. Custom Component Styles:
+      - Custom Webkit Scrollbar (สไตล์แถบสกอร์ลบาร์เฉพาะเว็บ)
+      - Keyframe Animations (fadeIn)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. EXTERNAL FONTS & ICON LIBRARIES (@import)
+   -------------------------------------------------------------------------- */
+/* Google Fonts: Prompt & Inter */
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Font Awesome 6.4.0 Icons */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+/* Google Material Symbols Outlined Icons */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+/* --------------------------------------------------------------------------
+   2. CUSTOM DESIGN TOKENS & VARIABLES
+   -------------------------------------------------------------------------- */
+:root {
+  --color-primary: #7F77DD;
+  --color-primary-hover: #6A62C4;
+  --color-primary-dark: #26215C;
+  --color-primary-light: #EEEDFA;
+  
+  --color-mint: #1D9E75;
+  --color-mint-dark: #04342C;
+  --color-mint-light: #E6F6F2;
+  
+  --color-pink: #D4537E;
+  --color-pink-dark: #4B1528;
+  --color-pink-light: #FCEBF1;
+  
+  --color-yellow: #EF9F27;
+  --color-yellow-dark: #854F0B;
+  --color-yellow-light: #FEF5E8;
+  
+  --color-danger: #E24B4A;
+  --color-danger-dark: #791F1F;
+  --color-danger-light: #FCEBEB;
+  
+  --color-body-bg: #F1EFE8;
+  --color-dark-text: #2C2C2A;
+  --color-sub-text: #5F5E5A;
+  --color-border-gray: #D3D1C7;
+}
+
+/* --------------------------------------------------------------------------
+   3. BASE LAYOUT & TYPOGRAPHY
+   -------------------------------------------------------------------------- */
+body {
+  font-family: 'Prompt', 'Inter', sans-serif;
+  background-color: var(--color-body-bg);
+  color: var(--color-dark-text);
+  min-height: 100vh;
+}
+
+/* --------------------------------------------------------------------------
+   4. CUSTOM WEBKIT SCROLLBAR
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-body-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-gray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   5. KEYFRAME ANIMATIONS & UTILITY EFFECTS
+   -------------------------------------------------------------------------- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}

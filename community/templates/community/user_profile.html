@@ -1,0 +1,719 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}โปรไฟล์ - {{ user.username }} | GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8 max-w-6xl">
+
+    <!-- ===== BREADCRUMB NAVIGATION ===== -->
+    <nav class="flex items-center text-sm text-[#5F5E5A] space-x-2 flex-wrap mb-6">
+        <a href="{% url 'community:home' %}" class="hover:text-[#7F77DD] transition flex items-center gap-1.5">
+            <i class="fas fa-home text-xs"></i>
+            <span>หน้าแรก</span>
+        </a>
+        <i class="fas fa-chevron-right text-[10px] text-[#D3D1C7]"></i>
+        <a href="{% url 'community:ranking' %}" class="hover:text-[#7F77DD] transition">
+            ตารางอันดับ
+        </a>
+        <i class="fas fa-chevron-right text-[10px] text-[#D3D1C7]"></i>
+        <span class="text-[#7F77DD] font-semibold">@{{ user.username }}</span>
+    </nav>
+
+    <!-- ===== PROFILE HERO HEADER CARD ===== -->
+    <div class="bg-white rounded-3xl shadow-sm border border-[#D3D1C7] overflow-hidden mb-8 transition hover:shadow-md">
+        
+        <!-- Cover Art Banner -->
+        <div class="relative h-44 sm:h-52 bg-gradient-to-r from-[#1c1836] via-[#26215C] to-[#433878] overflow-hidden">
+            <!-- Ambient Glow & Pattern -->
+            <div class="absolute -right-12 -top-12 w-64 h-64 bg-[#7F77DD]/25 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -left-12 -bottom-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+            <!-- Top Corner Badges -->
+            <div class="absolute top-4 right-4 flex items-center gap-2 flex-wrap">
+                {% if user.is_staff or user.is_superuser %}
+                <span class="bg-red-500/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full border border-white/20 shadow-md flex items-center gap-1.5">
+                    <i class="fas fa-shield-halved text-[11px]"></i>
+                    <span>ผู้ดูแลระบบ</span>
+                </span>
+                {% endif %}
+
+                {% if not user.is_staff and not user.is_superuser %}
+                <a href="{% url 'community:ranking' %}" class="bg-black/40 hover:bg-black/60 backdrop-blur-md text-amber-300 hover:text-amber-200 text-xs font-semibold px-3 py-1 rounded-full border border-white/10 shadow-md transition flex items-center gap-1.5">
+                    <i class="fas fa-trophy text-[11px]"></i>
+                    <span>อันดับ #{{ rank }} ของระบบ</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Identity & Actions Section -->
+        <div class="px-6 sm:px-8 pb-6 relative">
+            <!-- Top Row: Avatar Overlap + Action Buttons -->
+            <div class="flex flex-col sm:flex-row items-center sm:items-end justify-between -mt-14 sm:-mt-16 mb-4 gap-4">
+                <!-- Avatar with Ring & Status -->
+                <div class="relative shrink-0">
+                    <div class="w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1 bg-white shadow-xl ring-4 ring-white">
+                        {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="{{ user.username }}"
+                            class="w-full h-full rounded-full object-cover bg-slate-100">
+                        {% else %}
+                        <div class="w-full h-full rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                            <i class="fas fa-user text-4xl"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Online / Offline Indicator -->
+                    <div class="absolute bottom-1 right-1">
+                        {% if profile.is_online %}
+                        <span class="relative flex h-5 w-5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-5 w-5 bg-emerald-500 border-2 border-white shadow-sm" title="ออนไลน์ (Online)"></span>
+                        </span>
+                        {% else %}
+                        <span class="inline-flex rounded-full h-5 w-5 bg-slate-400 border-2 border-white shadow-sm" title="ออฟไลน์ (Offline)"></span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2.5 flex-wrap justify-center sm:justify-end">
+                    {% if user.is_authenticated and user != request.user %}
+                    <div id="friendButtonArea" class="inline-flex flex-wrap items-center gap-2">
+                        {% if is_friend %}
+                        <button class="bg-emerald-50 text-emerald-700 px-4 py-2.5 rounded-xl font-semibold text-xs border border-emerald-200 flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-check text-emerald-600"></i>
+                            <span>เพื่อนกันแล้ว</span>
+                        </button>
+                        <a href="{% url 'community:remove_friend' user.username %}"
+                            class="bg-rose-50 text-rose-600 border border-rose-200 px-3 py-2.5 rounded-xl font-semibold text-xs hover:bg-rose-100 transition shadow-sm flex items-center"
+                            onclick="return confirm('คุณต้องการลบเพื่อนคนนี้ใช่หรือไม่?');" title="เลิกเป็นเพื่อน">
+                            <i class="fas fa-user-minus"></i>
+                        </a>
+                        {% elif is_pending %}
+                        <button class="bg-gray-100 text-gray-600 px-4 py-2.5 rounded-xl font-semibold text-xs border border-gray-200 flex items-center gap-1.5 shadow-sm cursor-default">
+                            <i class="fas fa-clock text-gray-400"></i>
+                            <span>รอตอบรับ</span>
+                        </button>
+                        {% elif has_incoming_request %}
+                        <button type="button" onclick="handleAcceptFriend({{ incoming_friendship_id }})"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition shadow-sm flex items-center gap-1.5">
+                            <i class="fas fa-user-check"></i>
+                            <span>ยอมรับคำขอ</span>
+                        </button>
+                        <button type="button" onclick="handleRejectFriend({{ incoming_friendship_id }})"
+                            class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2.5 rounded-xl font-semibold text-xs transition shadow-sm flex items-center"
+                            title="ปฏิเสธคำขอ">
+                            <i class="fas fa-xmark"></i>
+                        </button>
+                        {% else %}
+                        <button type="button" onclick="handleAddFriend('{{ user.username }}')"
+                            class="bg-[#7F77DD] hover:bg-[#6A62C4] text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition shadow-sm hover:shadow flex items-center gap-1.5">
+                            <i class="fas fa-user-plus"></i>
+                            <span>เพิ่มเพื่อน</span>
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- Chat Button -->
+                    <a id="chatButton" href="{% url 'community:chat' user.username %}"
+                        class="{% if not is_friend and not request.user.is_staff and not user.is_staff %}hidden{% endif %} bg-white border border-[#D3D1C7] text-[#2C2C2A] hover:bg-[#EEEDFA] hover:text-[#7F77DD] hover:border-[#7F77DD] px-4 py-2.5 rounded-xl font-semibold text-xs transition shadow-sm flex items-center gap-1.5">
+                        <i class="fas fa-message text-[#7F77DD]"></i>
+                        <span>ข้อความ</span>
+                    </a>
+
+                    <!-- Report User Button -->
+                    <a href="{% url 'community:report_user' user.username %}"
+                        class="bg-white border border-[#D3D1C7] text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 px-3 py-2.5 rounded-xl font-semibold text-xs transition shadow-sm"
+                        title="รายงานผู้ใช้">
+                        <i class="fas fa-flag"></i>
+                    </a>
+
+                    {% elif user == request.user %}
+                    <a href="{% url 'community:edit_profile' %}"
+                        class="bg-gradient-to-r from-[#7F77DD] to-indigo-600 hover:from-[#6A62C4] hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md hover:shadow-lg flex items-center gap-2 transform active:scale-95">
+                        <i class="fas fa-user-pen"></i>
+                        <span>แก้ไขโปรไฟล์</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- User Info (Crisp & High Contrast on White Background) -->
+            <div class="space-y-1 pb-6 border-b border-gray-100 text-center sm:text-left">
+                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                    <h1 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                        {{ user.username }}
+                    </h1>
+                    
+                    <!-- Clickable Rank Badge -->
+                    <button type="button" onclick="document.getElementById('rankTableModal').classList.remove('hidden')"
+                        class="inline-flex items-center gap-1.5 bg-[#EEEDFA] hover:bg-[#7F77DD]/20 text-[#7F77DD] text-xs font-bold px-3 py-1 rounded-full border border-[#7F77DD]/30 shadow-sm transition transform hover:scale-105"
+                        title="คลิกเพื่อดูตารางระดับคะแนน">
+                        <i class="fas fa-medal text-amber-500"></i>
+                        <span>{{ profile.get_rank }}</span>
+                        <i class="fas fa-circle-question text-[10px] opacity-70"></i>
+                    </button>
+                </div>
+
+                {% if user.first_name or user.last_name %}
+                <p class="text-sm font-semibold text-gray-700">
+                    {{ user.first_name }} {{ user.last_name }}
+                </p>
+                {% endif %}
+
+                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-gray-500 pt-1">
+                    <span class="flex items-center gap-1.5">
+                        <i class="far fa-calendar-alt text-gray-400"></i>
+                        เข้าร่วมเมื่อ {{ user.date_joined|date:'d M Y' }}
+                    </span>
+                    {% if profile.is_online %}
+                    <span class="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        ออนไลน์อยู่
+                    </span>
+                    {% else %}
+                    <span class="flex items-center gap-1.5 text-gray-400">
+                        <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                        ออฟไลน์
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- BENTO STATS ROW (3 COLUMNS) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-6">
+                <!-- Stat 1: Points -->
+                <div class="bg-gradient-to-br from-amber-50/70 to-yellow-50/50 rounded-2xl p-4 border border-amber-100 shadow-sm hover:shadow transition">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-semibold text-amber-700 uppercase tracking-wide">คะแนนสะสม</span>
+                        <i class="fas fa-fire text-amber-500"></i>
+                    </div>
+                    <div class="text-lg sm:text-xl font-black text-amber-900">{{ profile.points }} <span class="text-xs font-semibold text-amber-600">PTS</span></div>
+                    <div class="text-[10px] text-amber-600 mt-1">จากการมีส่วนร่วม</div>
+                </div>
+
+                <!-- Stat 2: Threads -->
+                <div class="bg-gradient-to-br from-blue-50/70 to-slate-50/50 rounded-2xl p-4 border border-blue-100 shadow-sm hover:shadow transition">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-semibold text-blue-700 uppercase tracking-wide">กระทู้</span>
+                        <i class="fas fa-comments text-blue-400"></i>
+                    </div>
+                    <div class="text-lg sm:text-xl font-black text-blue-950">{{ threads.count }}</div>
+                    <div class="text-[10px] text-blue-500 mt-1">กระทู้ทั้งหมด</div>
+                </div>
+
+                <!-- Stat 3: Guides -->
+                <div class="bg-gradient-to-br from-emerald-50/70 to-teal-50/50 rounded-2xl p-4 border border-emerald-100 shadow-sm hover:shadow transition">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide">ไกด์เกม</span>
+                        <i class="fas fa-book-bookmark text-emerald-500"></i>
+                    </div>
+                    <div class="text-lg sm:text-xl font-black text-emerald-950">{{ guides.count }}</div>
+                    <div class="text-[10px] text-emerald-600 mt-1">บทความแบ่งปัน</div>
+                </div>
+            </div>
+
+            <!-- BIO / ABOUT ME SECTION -->
+            <div class="mt-6 bg-slate-50/80 rounded-2xl p-5 border border-slate-200/80">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-bold text-[#5F5E5A] uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fas fa-quote-left text-[#7F77DD]"></i>
+                        <span>ชีวประวัติ (Bio)</span>
+                    </h2>
+                    {% if user == request.user and not profile.bio %}
+                    <a href="{% url 'community:edit_profile' %}" class="text-[11px] text-[#7F77DD] hover:underline font-semibold">
+                        + เขียนชีวประวัติของคุณ
+                    </a>
+                    {% endif %}
+                </div>
+
+                {% if profile.bio %}
+                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line pl-1">
+                    {{ profile.bio }}
+                </p>
+                {% else %}
+                <p class="text-xs text-gray-400 italic pl-1">
+                    ยังไม่มีการระบุชีวประวัติ...
+                </p>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===== MAIN CONTENT TABS (THREADS & GUIDES) ===== -->
+    <div class="space-y-6">
+        
+        <!-- Tab Navigation Bar -->
+        <div class="flex items-center justify-between border-b border-[#D3D1C7] pb-3 flex-wrap gap-4">
+            <div class="flex items-center gap-3">
+                <button type="button" id="tabBtnThreads" onclick="switchProfileTab('threads')"
+                    class="tab-btn active px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 bg-[#7F77DD] text-white shadow-sm">
+                    <i class="fas fa-comments"></i>
+                    <span>กระทู้พูดคุย</span>
+                    <span class="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{{ threads.count }}</span>
+                </button>
+
+                <button type="button" id="tabBtnGuides" onclick="switchProfileTab('guides')"
+                    class="tab-btn px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 bg-white text-gray-600 hover:text-[#7F77DD] hover:bg-gray-100 border border-gray-200">
+                    <i class="fas fa-book"></i>
+                    <span>ไกด์เกม</span>
+                    <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ guides.count }}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 1: THREADS PANE -->
+        <div id="tabPaneThreads" class="space-y-4">
+            {% if threads %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for thread in threads %}
+                <div class="bg-white rounded-2xl p-5 border border-[#D3D1C7] shadow-sm hover:shadow-md hover:border-[#7F77DD]/50 transition group flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-2.5">
+                            {% if thread.game %}
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold bg-[#EEEDFA] text-[#7F77DD] px-2.5 py-0.5 rounded-lg">
+                                <i class="fas fa-gamepad text-[10px]"></i>
+                                {{ thread.game.name }}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-lg">
+                                ทั่วไป
+                            </span>
+                            {% endif %}
+
+                            <span class="text-[11px] text-gray-400">
+                                {{ thread.created_at|date:'d M Y' }}
+                            </span>
+                        </div>
+
+                        <h3 class="font-bold text-base text-[#2C2C2A] group-hover:text-[#7F77DD] transition line-clamp-1 mb-1.5">
+                            <a href="{% url 'community:thread_detail' thread.id %}">
+                                {{ thread.title }}
+                            </a>
+                        </h3>
+
+                        <p class="text-xs text-[#5F5E5A] line-clamp-2 leading-relaxed mb-4">
+                            {{ thread.content|truncatewords:25 }}
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-3 border-t border-gray-100 text-xs">
+                        <div class="flex items-center gap-3 text-gray-500">
+                            <span class="flex items-center gap-1.5 hover:text-red-500 transition">
+                                <i class="fas fa-heart text-red-500 text-[11px]"></i>
+                                <span>{{ thread.get_like_count }}</span>
+                            </span>
+                            <span class="flex items-center gap-1.5 hover:text-blue-500 transition">
+                                <i class="fas fa-comment text-blue-500 text-[11px]"></i>
+                                <span>{{ thread.comments.count }}</span>
+                            </span>
+                        </div>
+
+                        <a href="{% url 'community:thread_detail' thread.id %}"
+                            class="text-[11px] font-semibold text-[#7F77DD] hover:underline flex items-center gap-1">
+                            <span>อ่านต่อ</span>
+                            <i class="fas fa-arrow-right text-[9px]"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bg-white rounded-3xl p-12 text-center border border-dashed border-[#D3D1C7]">
+                <div class="w-16 h-16 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center text-2xl mx-auto mb-3">
+                    <i class="far fa-comments"></i>
+                </div>
+                <h4 class="text-base font-bold text-gray-700 mb-1">ยังไม่มีการตั้งกระทู้</h4>
+                <p class="text-xs text-gray-500 max-w-sm mx-auto">ยังไม่มีประวัติการสร้างกระทู้พูดคุยใด ๆ ในคอมมูนิตี้</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- TAB 2: GUIDES PANE -->
+        <div id="tabPaneGuides" class="space-y-4 hidden">
+            {% if guides %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for guide in guides %}
+                <div class="bg-white rounded-2xl p-5 border border-[#D3D1C7] shadow-sm hover:shadow-md hover:border-emerald-400/50 transition group flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-2.5">
+                            {% if guide.game %}
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-lg border border-emerald-100">
+                                <i class="fas fa-book text-[10px]"></i>
+                                {{ guide.game.name }}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-lg">
+                                ทั่วไป
+                            </span>
+                            {% endif %}
+
+                            <span class="text-[11px] text-gray-400">
+                                {{ guide.created_at|date:'d M Y' }}
+                            </span>
+                        </div>
+
+                        <h3 class="font-bold text-base text-[#2C2C2A] group-hover:text-emerald-600 transition line-clamp-1 mb-1.5">
+                            <a href="{% url 'community:guide_detail' guide.id %}">
+                                {{ guide.title }}
+                            </a>
+                        </h3>
+
+                        <p class="text-xs text-[#5F5E5A] line-clamp-2 leading-relaxed mb-4">
+                            {{ guide.content|truncatewords:25 }}
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-3 border-t border-gray-100 text-xs">
+                        <div class="flex items-center gap-3 text-gray-500">
+                            <span class="flex items-center gap-1.5 hover:text-red-500 transition">
+                                <i class="fas fa-heart text-red-500 text-[11px]"></i>
+                                <span>{{ guide.get_like_count }}</span>
+                            </span>
+                            <span class="flex items-center gap-1.5 hover:text-blue-500 transition">
+                                <i class="fas fa-comment text-blue-500 text-[11px]"></i>
+                                <span>{{ guide.comments.count }}</span>
+                            </span>
+                            {% if guide.views_count %}
+                            <span class="flex items-center gap-1.5 text-gray-400">
+                                <i class="fas fa-eye text-[11px]"></i>
+                                <span>{{ guide.views_count }}</span>
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <a href="{% url 'community:guide_detail' guide.id %}"
+                            class="text-[11px] font-semibold text-emerald-600 hover:underline flex items-center gap-1">
+                            <span>อ่านไกด์นี้</span>
+                            <i class="fas fa-arrow-right text-[9px]"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bg-white rounded-3xl p-12 text-center border border-dashed border-[#D3D1C7]">
+                <div class="w-16 h-16 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center text-2xl mx-auto mb-3">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <h4 class="text-base font-bold text-gray-700 mb-1">ยังไม่มีไกด์เกม</h4>
+                <p class="text-xs text-gray-500 max-w-sm mx-auto">ยังไม่มีประวัติการเผยแพร่ไกด์เกมหรือบทความแนะนำ</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- ===== RANK TABLE MODAL ===== -->
+    <div id="rankTableModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <!-- Backdrop with Blur -->
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" aria-hidden="true"
+                onclick="document.getElementById('rankTableModal').classList.add('hidden')"></div>
+
+            <!-- Modal Container -->
+            <div class="inline-block bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-lg w-full z-10 border border-gray-100">
+                
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-[#26215C] via-[#3D3A55] to-[#7F77DD] text-white px-6 py-5 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-amber-300 text-lg border border-white/20">
+                            <i class="fas fa-trophy"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-base font-bold text-white mb-0.5" id="modal-title">ตารางระดับและเกณฑ์คะแนน</h3>
+                            <p class="text-xs text-white/80">ระบบระดับขั้นสำหรับสมาชิก GameCommu</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="document.getElementById('rankTableModal').classList.add('hidden')"
+                        class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                        <i class="fas fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Table Content -->
+                <div class="p-6">
+                    <div class="overflow-hidden border border-gray-200 rounded-2xl shadow-sm">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-800 text-white text-xs uppercase font-semibold">
+                                <tr>
+                                    <th scope="col" class="px-5 py-3 text-left tracking-wider">ระดับ (Rank)</th>
+                                    <th scope="col" class="px-5 py-3 text-right tracking-wider">คะแนนที่ต้องการ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200 text-xs">
+                                <tr class="{% if profile.get_rank == 'ผู้เริ่มต้น' %}bg-indigo-50/80 font-bold{% endif %}">
+                                    <td class="px-5 py-2.5 font-medium text-gray-700 flex items-center gap-2">
+                                        <span>ผู้เริ่มต้น</span>
+                                        {% if profile.get_rank == 'ผู้เริ่มต้น' %}<span class="text-[10px] bg-[#7F77DD] text-white px-2 py-0.5 rounded-full">ของคุณ</span>{% endif %}
+                                    </td>
+                                    <td class="px-5 py-2.5 text-gray-600 text-right">0 - 20</td>
+                                </tr>
+                                <tr class="{% if profile.get_rank == 'นักผจญภัย' %}bg-indigo-50/80 font-bold{% endif %}">
+                                    <td class="px-5 py-2.5 font-medium text-gray-700 flex items-center gap-2">
+                                        <span>นักผจญภัย</span>
+                                        {% if profile.get_rank == 'นักผจญภัย' %}<span class="text-[10px] bg-[#7F77DD] text-white px-2 py-0.5 rounded-full">ของคุณ</span>{% endif %}
+                                    </td>
+                                    <td class="px-5 py-2.5 text-gray-600 text-right">21 - 50</td>
+                                </tr>
+                                <tr class="{% if profile.get_rank == 'ผู้บุกเบิก' %}bg-indigo-50/80 font-bold{% endif %}">
+                                    <td class="px-5 py-2.5 font-medium text-gray-700 flex items-center gap-2">
+                                        <span>ผู้บุกเบิก</span>
+                                        {% if profile.get_rank == 'ผู้บุกเบิก' %}<span class="text-[10px] bg-[#7F77DD] text-white px-2 py-0.5 rounded-full">ของคุณ</span>{% endif %}
+                                    </td>
+                                    <td class="px-5 py-2.5 text-gray-600 text-right">51 - 100</td>
+                                </tr>
+                                <tr class="{% if profile.get_rank == 'ผู้ชี้แนะ' %}bg-indigo-50/80 font-bold{% endif %}">
+                                    <td class="px-5 py-2.5 font-medium text-gray-700 flex items-center gap-2">
+                                        <span>ผู้ชี้แนะ</span>
+                                        {% if profile.get_rank == 'ผู้ชี้แนะ' %}<span class="text-[10px] bg-[#7F77DD] text-white px-2 py-0.5 rounded-full">ของคุณ</span>{% endif %}
+                                    </td>
+                                    <td class="px-5 py-2.5 text-gray-600 text-right">101 - 200</td>
+                                </tr>
+                                <tr class="{% if profile.get_rank == 'ยอดฝีมือ' %}bg-indigo-50/80 font-bold{% endif %}">
+                                    <td class="px-5 py-2.5 font-medium text-gray-700 flex items-center gap-2">
+                                        <span>ยอดฝีมือ</span>
+                                        {% if profile.get_rank == 'ยอดฝีมือ' %}<span class="text-[10px] bg-[#7F77DD] text-white px-2 py-0.5 rounded-full">ของคุณ</span>{% endif %}
+                                    </td>
+                                    <td class="px-5 py-2.5 text-gray-600 text-right">201 - 400</td>
+                                </tr>
+                                <tr class="{% if profile.get_rank == 'ผู้เชี่ยวชาญ' %}bg-indigo-50/80 font-bold{% endif %}">
+                                    <td class="px-5 py-2.5 font-medium text-gray-700 flex items-center gap-2">
+                                        <span>ผู้เชี่ยวชาญ</span>
+                                        {% if profile.get_rank == 'ผู้เชี่ยวชาญ' %}<span class="text-[10px] bg-[#7F77DD] text-white px-2 py-0.5 rounded-full">ของคุณ</span>{% endif %}
+                                    </td>
+                                    <td class="px-5 py-2.5 text-gray-600 text-right">401 - 700</td>
+                                </tr>
+                                <tr class="{% if profile.get_rank == 'ปรมาจารย์' %}bg-indigo-50/80 font-bold{% endif %}">
+                                    <td class="px-5 py-2.5 font-medium text-gray-700 flex items-center gap-2">
+                                        <span>ปรมาจารย์</span>
+                                        {% if profile.get_rank == 'ปรมาจารย์' %}<span class="text-[10px] bg-[#7F77DD] text-white px-2 py-0.5 rounded-full">ของคุณ</span>{% endif %}
+                                    </td>
+                                    <td class="px-5 py-2.5 text-gray-600 text-right">701 - 1,200</td>
+                                </tr>
+                                <tr class="{% if profile.get_rank == 'จอมราชัน' %}bg-indigo-50/80 font-bold{% endif %}">
+                                    <td class="px-5 py-2.5 font-medium text-gray-700 flex items-center gap-2">
+                                        <span>จอมราชัน</span>
+                                        {% if profile.get_rank == 'จอมราชัน' %}<span class="text-[10px] bg-[#7F77DD] text-white px-2 py-0.5 rounded-full">ของคุณ</span>{% endif %}
+                                    </td>
+                                    <td class="px-5 py-2.5 text-gray-600 text-right">1,201 - 2,000</td>
+                                </tr>
+                                <tr class="bg-amber-50/90 font-bold">
+                                    <td class="px-5 py-2.5 text-amber-900 flex items-center gap-2">
+                                        <span>ตำนาน</span>
+                                        {% if profile.get_rank == 'ตำนาน' %}<span class="text-[10px] bg-amber-600 text-white px-2 py-0.5 rounded-full">ของคุณ</span>{% endif %}
+                                    </td>
+                                    <td class="px-5 py-2.5 text-amber-900 text-right">2,001+</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Point Gain Rules Info Box -->
+                    <div class="mt-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-[11px] text-gray-600 space-y-1">
+                        <div class="font-bold text-gray-800 mb-1 flex items-center gap-1.5">
+                            <i class="fas fa-circle-info text-[#7F77DD]"></i>
+                            <span>การได้รับคะแนน (สะสม Rank):</span>
+                        </div>
+                        <p>• เมื่อกระทู้หรือไกด์ของคุณได้รับถูกใจ/รีแอ็กชัน: <strong>+1 คะแนน</strong></p>
+                        <p>• เมื่อกระทู้หรือไกด์ของคุณมีผู้เข้ามาคอมเมนต์: <strong>+1 คะแนน</strong></p>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="bg-gray-50 px-6 py-4 flex justify-end">
+                    <button type="button"
+                        class="px-5 py-2.5 bg-white hover:bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs border border-gray-300 shadow-sm transition"
+                        onclick="document.getElementById('rankTableModal').classList.add('hidden')">
+                        ปิดหน้าต่าง
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== TAB SWITCHING JAVASCRIPT ===== -->
+<script>
+    function switchProfileTab(tabName) {
+        const btnThreads = document.getElementById('tabBtnThreads');
+        const btnGuides = document.getElementById('tabBtnGuides');
+        const paneThreads = document.getElementById('tabPaneThreads');
+        const paneGuides = document.getElementById('tabPaneGuides');
+
+        if (tabName === 'threads') {
+            paneThreads.classList.remove('hidden');
+            paneGuides.classList.add('hidden');
+
+            btnThreads.className = 'tab-btn active px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 bg-[#7F77DD] text-white shadow-sm';
+            btnGuides.className = 'tab-btn px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 bg-white text-gray-600 hover:text-[#7F77DD] hover:bg-gray-100 border border-gray-200';
+        } else {
+            paneThreads.classList.add('hidden');
+            paneGuides.classList.remove('hidden');
+
+            btnGuides.className = 'tab-btn active px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 bg-emerald-600 text-white shadow-sm';
+            btnThreads.className = 'tab-btn px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 bg-white text-gray-600 hover:text-[#7F77DD] hover:bg-gray-100 border border-gray-200';
+        }
+    }
+</script>
+{% endblock %}
+
+{% block extra_js %}
+{% if user.is_authenticated and user != request.user %}
+<script>
+    const targetUsername = "{{ user.username }}";
+    const friendButtonArea = document.getElementById('friendButtonArea');
+
+    function renderFriendStatus(status) {
+        if (!friendButtonArea) return;
+
+        const chatBtn = document.getElementById('chatButton');
+        if (chatBtn) {
+            if (status.is_friend) {
+                chatBtn.classList.remove('hidden');
+            } else {
+                chatBtn.classList.add('hidden');
+            }
+        }
+
+        if (status.is_friend) {
+            friendButtonArea.innerHTML = `
+                <button class="bg-emerald-50 text-emerald-700 px-4 py-2.5 rounded-xl font-semibold text-xs border border-emerald-200 flex items-center gap-1.5 shadow-sm">
+                    <i class="fas fa-check text-emerald-600"></i>
+                    <span>เพื่อนกันแล้ว</span>
+                </button>
+                <a href="/remove-friend/${targetUsername}/" class="bg-rose-50 text-rose-600 border border-rose-200 px-3 py-2.5 rounded-xl font-semibold text-xs hover:bg-rose-100 transition shadow-sm flex items-center" onclick="return confirm('คุณต้องการลบเพื่อนคนนี้ใช่หรือไม่?');" title="เลิกเป็นเพื่อน">
+                    <i class="fas fa-user-minus"></i>
+                </a>
+            `;
+        } else if (status.is_pending) {
+            friendButtonArea.innerHTML = `
+                <button class="bg-gray-100 text-gray-600 px-4 py-2.5 rounded-xl font-semibold text-xs border border-gray-200 flex items-center gap-1.5 shadow-sm cursor-default">
+                    <i class="fas fa-clock text-gray-400"></i>
+                    <span>รอตอบรับ</span>
+                </button>
+            `;
+        } else if (status.has_incoming_request) {
+            friendButtonArea.innerHTML = `
+                <button type="button" onclick="handleAcceptFriend(${status.incoming_friendship_id})"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition shadow-sm flex items-center gap-1.5">
+                    <i class="fas fa-user-check"></i>
+                    <span>ยอมรับคำขอ</span>
+                </button>
+                <button type="button" onclick="handleRejectFriend(${status.incoming_friendship_id})"
+                    class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2.5 rounded-xl font-semibold text-xs transition shadow-sm flex items-center"
+                    title="ปฏิเสธคำขอ">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            `;
+        } else {
+            friendButtonArea.innerHTML = `
+                <button type="button" onclick="handleAddFriend('${targetUsername}')"
+                    class="bg-[#7F77DD] hover:bg-[#6A62C4] text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition shadow-sm hover:shadow flex items-center gap-1.5">
+                    <i class="fas fa-user-plus"></i>
+                    <span>เพิ่มเพื่อน</span>
+                </button>
+            `;
+        }
+    }
+
+    function handleAcceptFriend(friendshipId) {
+        fetch(`/accept-friend/${friendshipId}/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                renderFriendStatus({ is_friend: true });
+                if (typeof showToastNotification === 'function') {
+                    showToastNotification({
+                        type: 'friend_accept',
+                        title: targetUsername,
+                        message: 'คุณเป็นเพื่อนกันเรียบร้อยแล้ว!'
+                    });
+                }
+            }
+        })
+        .catch(err => {
+            window.location.href = `/accept-friend/${friendshipId}/`;
+        });
+    }
+
+    function handleRejectFriend(friendshipId) {
+        if (!confirm('คุณต้องการปฏิเสธคำขอเป็นเพื่อนนี้ใช่หรือไม่?')) return;
+        fetch(`/reject-friend/${friendshipId}/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                renderFriendStatus({ is_friend: false, is_pending: false, has_incoming_request: false });
+            }
+        })
+        .catch(err => {
+            window.location.href = `/reject-friend/${friendshipId}/`;
+        });
+    }
+
+    function handleAddFriend(username) {
+        fetch(`/add-friend/${username}/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                renderFriendStatus({ is_friend: false, is_pending: true, has_incoming_request: false });
+            } else if (data.is_friend) {
+                renderFriendStatus({ is_friend: true });
+            }
+        })
+        .catch(err => {
+            window.location.href = `/add-friend/${username}/`;
+        });
+    }
+
+    // Real-time polling for friend status on profile page
+    let currentIsFriend = {% if is_friend %}true{% else %}false{% endif %};
+    let currentIsPending = {% if is_pending %}true{% else %}false{% endif %};
+
+    function checkFriendStatus() {
+        fetch(`/api/friend-status/${targetUsername}/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.is_friend !== currentIsFriend || data.is_pending !== currentIsPending) {
+                    currentIsFriend = data.is_friend;
+                    currentIsPending = data.is_pending;
+                    renderFriendStatus(data);
+                }
+            })
+            .catch(err => {});
+    }
+
+    // Check status every 2.5 seconds
+    setInterval(checkFriendStatus, 2500);
+
+    // Also listen to real-time notification events from base.html
+    window.addEventListener('new_notification', function(e) {
+        const notif = e.detail;
+        if (notif && notif.from_user === targetUsername) {
+            checkFriendStatus();
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

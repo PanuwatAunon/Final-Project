@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+
+
+{% block title %}{{ title|default:"รายงานเนื้อหา" }} | GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8 max-w-4xl">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- ===== LEFT COLUMN: Report Form ===== -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Breadcrumb -->
+            <nav class="flex items-center text-sm text-[#5F5E5A] space-x-2">
+                <a href="{% url 'community:home' %}" class="hover:text-[#7F77DD] transition">
+                    <i class="fas fa-home mr-1"></i>หน้าแรก
+                </a>
+                <i class="fas fa-chevron-right text-[10px] text-[#D3D1C7]"></i>
+                <span class="text-[#E24B4A] font-semibold">{{ title|default:"รายงานเนื้อหา" }}</span>
+            </nav>
+
+            <!-- Header -->
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-[#2C2C2A] flex items-center gap-3">
+                    <div class="w-11 h-11 bg-gradient-to-br from-[#E24B4A] to-[#791F1F] rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+                        <i class="fas fa-flag text-white text-lg"></i>
+                    </div>
+                    {{ title|default:"รายงานเนื้อหาที่ไม่เหมาะสม" }}
+                </h1>
+                <p class="text-[#5F5E5A] text-sm mt-2 ml-14">
+                    {% if description %}
+                        {{ description }}
+                    {% else %}
+                        หากคุณพบว่าเนื้อหานี้ละเมิดกฎชุมชน โปรดรายงานให้เราทราบ ทีมผู้ดูแลจะตรวจสอบและจัดการตามความเหมาะสม
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Reported Target Info -->
+            {% if thread %}
+            <div class="bg-[#EEEDFA] border border-[#7F77DD]/20 rounded-xl p-4 flex items-start gap-3">
+                <div class="w-8 h-8 bg-[#7F77DD] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-comments text-white text-sm"></i>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs text-[#5F5E5A] font-medium">กระทู้ที่ถูกรายงาน</p>
+                    <p class="text-sm font-bold text-[#2C2C2A] truncate">{{ thread.title }}</p>
+                    <p class="text-xs text-[#5F5E5A]">โดย {{ thread.author.username }} · {{ thread.created_at|timesince }} ที่แล้ว</p>
+                </div>
+            </div>
+            {% elif comment %}
+            <div class="bg-[#EEEDFA] border border-[#7F77DD]/20 rounded-xl p-4 flex items-start gap-3">
+                <div class="w-8 h-8 bg-[#7F77DD] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-comment text-white text-sm"></i>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs text-[#5F5E5A] font-medium">ความคิดเห็นที่ถูกรายงาน</p>
+                    <p class="text-sm text-[#2C2C2A]">"{{ comment.content|truncatewords:20 }}"</p>
+                    <p class="text-xs text-[#5F5E5A]">โดย {{ comment.author.username }}</p>
+                </div>
+            </div>
+            {% elif guide %}
+            <div class="bg-[#E6F4EA] border border-[#1D9E75]/20 rounded-xl p-4 flex items-start gap-3">
+                <div class="w-8 h-8 bg-[#1D9E75] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-book text-white text-sm"></i>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs text-[#5F5E5A] font-medium">ไกด์เกมที่ถูกรายงาน</p>
+                    <p class="text-sm font-bold text-[#2C2C2A] truncate">{{ guide.title }}</p>
+                    <p class="text-xs text-[#5F5E5A]">โดย {{ guide.author.username }} · {{ guide.created_at|timesince }} ที่แล้ว</p>
+                </div>
+            </div>
+            {% elif reported_user %}
+            <div class="bg-[#FCEBF1] border border-[#D4537E]/20 rounded-xl p-4 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {% if reported_user.profile.avatar %}
+                    <img src="{{ reported_user.profile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="">
+                    {% else %}
+                    <div class="w-10 h-10 bg-[#D4537E] rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-white text-sm"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs text-[#5F5E5A] font-medium">ผู้ใช้ที่ถูกรายงาน</p>
+                    <p class="text-sm font-bold text-[#2C2C2A]">{{ reported_user.username }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if form.non_field_errors %}
+            <div class="bg-[#FCEBEB] border border-[#E24B4A]/30 text-[#791F1F] px-5 py-4 rounded-xl text-sm flex items-start gap-3">
+                <i class="fas fa-exclamation-triangle text-[#E24B4A] mt-0.5 flex-shrink-0"></i>
+                <div>
+                    {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Form Card -->
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="bg-white rounded-2xl border border-[#D3D1C7] shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-[#D3D1C7] bg-gradient-to-r from-[#FCEBEB]/60 to-white">
+                        <h3 class="text-sm font-bold text-[#2C2C2A] flex items-center">
+                            <span class="w-6 h-6 bg-[#E24B4A] text-white rounded-md flex items-center justify-center text-xs mr-2.5 font-bold shadow-sm">
+                                <i class="fas fa-pen text-[10px]"></i>
+                            </span>
+                            กรอกรายละเอียดการรายงาน
+                        </h3>
+                    </div>
+
+                    <div class="p-6 space-y-5">
+                        <!-- Report Type Select -->
+                        <div>
+                            <label for="{{ form.report_type.id_for_label }}"
+                                class="block text-xs font-bold text-[#5F5E5A] uppercase tracking-wider mb-2">
+                                <i class="fas fa-exclamation-circle text-[#E24B4A] mr-1.5"></i> สาเหตุการรายงาน
+                            </label>
+                            <select
+                                class="w-full rounded-xl border border-[#D3D1C7] bg-white px-4 py-3 text-[#2C2C2A] text-sm focus:border-[#E24B4A] focus:ring-2 focus:ring-[#E24B4A]/15 outline-none transition cursor-pointer {% if form.report_type.errors %}border-[#E24B4A] ring-2 ring-[#E24B4A]/15{% endif %}"
+                                id="{{ form.report_type.id_for_label }}" name="{{ form.report_type.name }}" required>
+                                <option value="">-- เลือกเหตุผลการรายงาน --</option>
+                                <option value="spam">สแปม / โฆษณา</option>
+                                <option value="offensive">เนื้อหาไม่สุภาพ / หยาบคาย</option>
+                                <option value="hate_speech">เนื้อหาเกลียดชัง / เหยียด</option>
+                                <option value="adult">เนื้อหาสำหรับผู้ใหญ่</option>
+                                <option value="violence">ความรุนแรง / ข่มขู่</option>
+                                <option value="misleading">ข้อมูลเท็จ / หลอกลวง</option>
+                                <option value="copyright">ละเมิดลิขสิทธิ์</option>
+                                <option value="other">อื่นๆ</option>
+                            </select>
+                            {% if form.report_type.errors %}
+                            <p class="mt-1.5 text-xs text-[#E24B4A] font-medium">
+                                <i class="fas fa-exclamation-circle mr-1"></i>{{ form.report_type.errors|join:", " }}
+                            </p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Description Textarea -->
+                        <div>
+                            <label for="{{ form.description.id_for_label }}"
+                                class="block text-xs font-bold text-[#5F5E5A] uppercase tracking-wider mb-2">
+                                <i class="fas fa-align-left text-[#E24B4A] mr-1.5"></i> รายละเอียดเพิ่มเติม
+                            </label>
+                            <textarea
+                                class="w-full rounded-xl border border-[#D3D1C7] bg-white p-4 text-[#2C2C2A] placeholder-[#5F5E5A]/50 focus:border-[#E24B4A] focus:ring-2 focus:ring-[#E24B4A]/15 outline-none transition text-sm leading-relaxed resize-y {% if form.description.errors %}border-[#E24B4A] ring-2 ring-[#E24B4A]/15{% endif %}"
+                                id="{{ form.description.id_for_label }}" name="{{ form.description.name }}" rows="5"
+                                placeholder="อธิบายให้ทีมงานเข้าใจว่าเกิดปัญหาอะไร เช่น พบเห็นอะไร สิ่งที่ไม่เหมาะสมอยู่ตรงไหน..."
+                                required>{{ form.description.value|default:'' }}</textarea>
+                            {% if form.description.errors %}
+                            <p class="mt-1.5 text-xs text-[#E24B4A] font-medium">
+                                <i class="fas fa-exclamation-circle mr-1"></i>{{ form.description.errors|join:", " }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Bar -->
+                <div class="mt-6 bg-white rounded-2xl border border-[#D3D1C7] shadow-sm px-6 py-4 flex flex-col sm:flex-row items-center gap-3">
+                    <button type="submit"
+                        class="w-full sm:w-auto flex-1 bg-gradient-to-r from-[#E24B4A] to-[#C03030] hover:from-[#C03030] hover:to-[#A02020] text-white font-bold py-3.5 px-8 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center text-sm">
+                        <i class="fas fa-flag mr-2"></i> ส่งรายงาน
+                    </button>
+                    <a href="javascript:history.back()"
+                        class="w-full sm:w-auto bg-[#F1EFE8] hover:bg-[#E8E5DB] text-[#5F5E5A] font-semibold py-3.5 px-6 rounded-xl transition border border-[#D3D1C7] flex items-center justify-center text-sm">
+                        <i class="fas fa-arrow-left mr-2"></i> ยกเลิก
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===== RIGHT COLUMN: Sidebar ===== -->
+        <div class="lg:col-span-1 space-y-6">
+
+            <!-- Report Category Guide -->
+            <div class="bg-white rounded-2xl border border-[#D3D1C7] shadow-sm overflow-hidden">
+                <div class="px-5 py-4 border-b border-[#D3D1C7] bg-gradient-to-r from-[#FCEBEB]/50 to-white">
+                    <h4 class="text-sm font-bold text-[#2C2C2A] flex items-center">
+                        <i class="fas fa-question-circle text-[#E24B4A] mr-2"></i> ประเภทปัญหาที่รายงานได้
+                    </h4>
+                </div>
+                <ul class="p-5 space-y-3">
+                    <li class="flex items-start gap-3 text-xs text-[#5F5E5A]">
+                        <span class="w-5 h-5 bg-[#FCEBEB] text-[#E24B4A] rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px]">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                        <span><strong class="text-[#2C2C2A]">สแปม</strong> — ลิงก์โฆษณา, ส่งข้อความซ้ำๆ</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-xs text-[#5F5E5A]">
+                        <span class="w-5 h-5 bg-[#FCEBEB] text-[#E24B4A] rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px]">
+                            <i class="fas fa-angry"></i>
+                        </span>
+                        <span><strong class="text-[#2C2C2A]">ไม่สุภาพ</strong> — คำหยาบคาย, ด่าทอ, คุกคาม</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-xs text-[#5F5E5A]">
+                        <span class="w-5 h-5 bg-[#FCEBEB] text-[#E24B4A] rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px]">
+                            <i class="fas fa-ban"></i>
+                        </span>
+                        <span><strong class="text-[#2C2C2A]">เกลียดชัง</strong> — เหยียดเชื้อชาติ, ศาสนา, เพศ</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-xs text-[#5F5E5A]">
+                        <span class="w-5 h-5 bg-[#FCEBEB] text-[#E24B4A] rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px]">
+                            <i class="fas fa-bolt"></i>
+                        </span>
+                        <span><strong class="text-[#2C2C2A]">ความรุนแรง</strong> — ข่มขู่ทำร้าย, ภาพรุนแรง</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-xs text-[#5F5E5A]">
+                        <span class="w-5 h-5 bg-[#FCEBEB] text-[#E24B4A] rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px]">
+                            <i class="fas fa-mask"></i>
+                        </span>
+                        <span><strong class="text-[#2C2C2A]">ข้อมูลเท็จ</strong> — ข่าวปลอม, หลอกลวง</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-xs text-[#5F5E5A]">
+                        <span class="w-5 h-5 bg-[#FCEBEB] text-[#E24B4A] rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px]">
+                            <i class="fas fa-copyright"></i>
+                        </span>
+                        <span><strong class="text-[#2C2C2A]">ละเมิดลิขสิทธิ์</strong> — เนื้อหาที่ไม่มีสิทธิ์เผยแพร่</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Process Info Card -->
+            <div class="bg-gradient-to-br from-[#26215C] to-[#7F77DD] rounded-2xl p-5 text-white shadow-md">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                        <i class="fas fa-shield-alt text-[#EF9F27]"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm">ขั้นตอนหลังส่งรายงาน</h4>
+                        <p class="text-white/60 text-[10px]">ทีมงานจะดำเนินการตรวจสอบ</p>
+                    </div>
+                </div>
+                <div class="space-y-2.5">
+                    <div class="flex items-center gap-3 bg-white/10 rounded-lg px-3 py-2.5 text-xs backdrop-blur-sm">
+                        <span class="w-5 h-5 bg-[#EF9F27] text-white rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">1</span>
+                        <span>ทีมงานรับเรื่องและตรวจสอบ</span>
+                    </div>
+                    <div class="flex items-center gap-3 bg-white/10 rounded-lg px-3 py-2.5 text-xs backdrop-blur-sm">
+                        <span class="w-5 h-5 bg-[#EF9F27] text-white rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">2</span>
+                        <span>ประเมินความรุนแรงของปัญหา</span>
+                    </div>
+                    <div class="flex items-center gap-3 bg-white/10 rounded-lg px-3 py-2.5 text-xs backdrop-blur-sm">
+                        <span class="w-5 h-5 bg-[#1D9E75] text-white rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">3</span>
+                        <span>ดำเนินการตามกฎชุมชน</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

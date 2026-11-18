@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+
+{% block title %}การแจ้งเตือน | GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8 max-w-3xl">
+    <div class="bg-white rounded-xl shadow-md overflow-hidden min-h-[500px]">
+        <div class="bg-primary text-white px-6 py-4 flex items-center justify-between">
+            <h4 class="text-xl font-bold flex items-center">
+                <i class="fas fa-bell mr-3"></i> การแจ้งเตือน
+                {% if notifications_list %}
+                <span class="ml-2 bg-white/20 text-white text-xs px-2 py-1 rounded-full font-medium">
+                    {{ notifications_list.count }}
+                </span>
+                {% endif %}
+            </h4>
+
+            {% if notifications_list %}
+            <a href="{% url 'community:clear_notifications' %}"
+                class="text-white/80 hover:text-white text-sm font-medium flex items-center transition"
+                onclick="return confirm('คุณต้องการลบการแจ้งเตือนทั้งหมดใช่หรือไม่?');">
+                <i class="fas fa-trash-alt mr-1"></i> ล้างทั้งหมด
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="divide-y divide-gray-100">
+            {% if notifications_list %}
+            {% for notification in notifications_list %}
+            <div id="notif-row-{{ notification.id }}"
+                class="relative group border-b border-gray-100 last:border-0 hover:bg-gray-50 transition duration-150 ease-in-out {% if not notification.is_read %}bg-blue-50/50{% endif %}">
+
+                {% if not notification.is_read %}
+                <div class="unread-bar absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+                {% endif %}
+
+                {% if notification.notification_type == 'warning' %}
+                <div onclick="showWarningModal('{{ notification.id }}', '{{ notification.from_user.username|default:"ผู้ดูแลระบบ"|escapejs }}', '{{ notification.warning.reason|default:"ละเมิดกฎชุมชน"|escapejs }}', '{{ notification.created_at|date:"d M Y H:i" }}', this)"
+                    class="block px-6 py-4 flex items-start gap-4 cursor-pointer select-none">
+                {% else %}
+                <a href="{% url 'community:read_notification' notification.id %}"
+                    class="block px-6 py-4 flex items-start gap-4">
+                {% endif %}
+
+                        <div class="flex-shrink-0 mt-1">
+                            {% if notification.notification_type == 'like' %}
+                            <div
+                                class="w-10 h-10 rounded-full bg-red-100 text-red-500 flex items-center justify-center">
+                                <i class="fas fa-heart text-lg"></i>
+                            </div>
+                            {% elif notification.notification_type == 'reply' %}
+                            <div
+                                class="w-10 h-10 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center">
+                                <i class="fas fa-comment text-lg"></i>
+                            </div>
+                            {% elif notification.notification_type == 'friend_request' %}
+                            <div
+                                class="w-10 h-10 rounded-full bg-green-100 text-green-500 flex items-center justify-center">
+                                <i class="fas fa-user-plus text-lg"></i>
+                            </div>
+                            {% elif notification.notification_type == 'friend_accept' %}
+                            <div
+                                class="w-10 h-10 rounded-full bg-teal-100 text-teal-500 flex items-center justify-center">
+                                <i class="fas fa-user-check text-lg"></i>
+                            </div>
+                            {% elif notification.notification_type == 'message' %}
+                            <div
+                                class="w-10 h-10 rounded-full bg-purple-100 text-purple-500 flex items-center justify-center">
+                                <i class="fas fa-envelope text-lg"></i>
+                            </div>
+                            {% elif notification.notification_type == 'warning' %}
+                            <div
+                                class="w-10 h-10 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center shadow-sm">
+                                <i class="fas fa-triangle-exclamation text-lg"></i>
+                            </div>
+                            {% else %}
+                            <div
+                                class="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
+                                <i class="fas fa-bell text-lg"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex-grow pr-6">
+                            <div class="text-gray-800 text-sm mb-1 leading-relaxed">
+                                <span class="font-bold text-gray-900">{{ notification.from_user.username }}</span>
+
+                                {% if notification.notification_type == 'like' %}
+                                ชอบสิ่งที่คุณสร้าง
+                                {% elif notification.notification_type == 'reply' %}
+                                ตอบกลับกระทู้ของคุณ
+                                {% elif notification.notification_type == 'friend_request' %}
+                                ส่งคำขอเพิ่มเพื่อน
+                                {% elif notification.notification_type == 'friend_accept' %}
+                                ยอมรับคำขอเพิ่มเพื่อนของคุณแล้ว
+                                {% elif notification.notification_type == 'message' %}
+                                ส่งข้อความถึงคุณ
+                                {% elif notification.notification_type == 'warning' %}
+                                <span class="text-amber-600 font-bold">แจ้งเตือนคุณ:</span>
+                                <span class="text-gray-700">{{ notification.warning.reason }}</span>
+                                <span class="inline-block ml-1 text-[11px] text-[#7F77DD] font-semibold underline hover:text-[#6A62C4]">(คลิกเพื่อดูรายละเอียด)</span>
+                                {% else %}
+                                ได้ทำการแจ้งเตือนใหม่
+                                {% endif %}
+                            </div>
+                            <div class="text-xs text-gray-400 font-medium">
+                                {{ notification.created_at|date:'d M Y H:i' }}
+                            </div>
+                        </div>
+
+                        {% if not notification.is_read %}
+                        <div class="unread-dot flex-shrink-0 self-center">
+                            <span class="bg-primary w-2.5 h-2.5 rounded-full block" title="ยังไม่อ่าน"></span>
+                        </div>
+                        {% endif %}
+                {% if notification.notification_type == 'warning' %}
+                </div>
+                {% else %}
+                </a>
+                {% endif %}
+
+                    <!-- Delete Button -->
+                    <a href="{% url 'community:delete_notification' notification.id %}"
+                        class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition z-10"
+                        title="ลบการแจ้งเตือน" onclick="return confirm('ต้องการลบการแจ้งเตือนนี้?');">
+                        <i class="fas fa-times text-xs"></i>
+                    </a>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-16 px-4">
+                <div
+                    class="w-24 h-24 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-bell-slash text-5xl"></i>
+                </div>
+                <h5 class="text-xl font-medium text-gray-400 mb-1">ไม่มีการแจ้งเตือน</h5>
+                <p class="text-gray-400 text-sm">เมื่อมีการแจ้งเตือนใหม่ๆ จะปรากฏขึ้นที่นี่</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Warning Detail Modal -->
+<div id="warningDetailModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-amber-100 transform transition-all animate-in fade-in duration-200">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold shadow-sm">
+                    <i class="fas fa-triangle-exclamation text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-base text-gray-900">การแจ้งเตือนจากผู้ดูแล</h3>
+                    <span id="warnModalDate" class="text-xs text-gray-400 font-medium"></span>
+                </div>
+            </div>
+            <button type="button" onclick="closeWarningModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex items-center justify-center transition">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+        </div>
+
+        <div class="py-4 space-y-4 text-sm">
+            <div class="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                <i class="fas fa-shield-halved text-[#7F77DD]"></i>
+                <span>ออกโดยเจ้าหน้าที่: <strong id="warnModalAdmin" class="text-gray-800 font-bold"></strong></span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    ข้อความ / เหตุผลในการตักเตือน
+                </label>
+                <div class="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl text-amber-900 leading-relaxed font-medium">
+                    <p id="warnModalReason" class="break-words text-sm whitespace-pre-line"></p>
+                </div>
+            </div>
+
+            <div class="p-3 bg-gray-50 rounded-xl text-xs text-gray-500 flex items-start gap-2.5">
+                <i class="fas fa-circle-info text-blue-500 mt-0.5 shrink-0"></i>
+                <p>กรุณาปฏิบัติตามกฎระเบียบของชุมชนอย่างเคร่งครัด เพื่อรักษาบรรยากาศที่ดีและหลีกเลี่ยงการถูกระงับบัญชีการใช้งานในอนาคต</p>
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-gray-100">
+            <button type="button" onclick="acknowledgeWarning()"
+                class="w-full py-2.5 bg-gray-900 hover:bg-black text-white font-bold rounded-xl text-sm transition shadow-md active:scale-98 flex items-center justify-center gap-2">
+                <i class="fas fa-check"></i>
+                <span>รับทราบ</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentWarningNotifId = null;
+let currentWarningRowEl = null;
+
+function showWarningModal(notifId, adminUser, reason, dateStr, el) {
+    currentWarningNotifId = notifId;
+    currentWarningRowEl = el ? (el.closest('.group') || el.closest('#notif-row-' + notifId)) : document.getElementById('notif-row-' + notifId);
+
+    document.getElementById('warnModalAdmin').textContent = adminUser;
+    document.getElementById('warnModalReason').textContent = reason;
+    document.getElementById('warnModalDate').textContent = dateStr;
+    document.getElementById('warningDetailModal').classList.remove('hidden');
+
+    // Mark as read immediately when user views the warning details
+    if (notifId) {
+        markNotifAsRead(notifId, currentWarningRowEl);
+    }
+}
+
+function acknowledgeWarning() {
+    if (currentWarningNotifId) {
+        markNotifAsRead(currentWarningNotifId, currentWarningRowEl);
+    }
+    closeWarningModal();
+}
+
+function closeWarningModal() {
+    document.getElementById('warningDetailModal').classList.add('hidden');
+}
+
+function markNotifAsRead(notifId, row) {
+    if (!row && notifId) {
+        row = document.getElementById('notif-row-' + notifId);
+    }
+
+    // 1. Immediately remove unread visual indicators from the row
+    if (row) {
+        row.classList.remove('bg-blue-50/50');
+        const bar = row.querySelector('.unread-bar');
+        if (bar) bar.remove();
+        const dot = row.querySelector('.unread-dot');
+        if (dot) dot.remove();
+    }
+
+    // 2. Immediately hide / decrement the red badge ("จุดแดง") on the navbar
+    const deskBadge = document.getElementById('notif-badge-desktop');
+    const mobBadge = document.getElementById('notif-badge-mobile');
+    [deskBadge, mobBadge].forEach(b => {
+        if (!b) return;
+        let c = parseInt(b.textContent.trim()) || 0;
+        c = Math.max(0, c - 1);
+        b.textContent = c;
+        if (c <= 0) {
+            b.classList.add('hidden');
+        }
+    });
+
+    // 3. Send AJAX request to save is_read = True in the database
+    fetch('/notification/' + notifId + '/read/?ajax=1', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data && typeof data.unread_notifications_count !== 'undefined') {
+            const count = data.unread_notifications_count;
+            [deskBadge, mobBadge].forEach(b => {
+                if (!b) return;
+                b.textContent = count;
+                if (count > 0) {
+                    b.classList.remove('hidden');
+                } else {
+                    b.classList.add('hidden');
+                }
+            });
+        }
+        if (typeof updateUnreadBadges === 'function') {
+            updateUnreadBadges();
+        }
+    })
+    .catch(err => {
+        console.error('Error marking notification as read:', err);
+    });
+}
+
+// Close when clicking outside modal
+document.getElementById('warningDetailModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        acknowledgeWarning();
+    }
+});
+</script>
+{% endblock %}

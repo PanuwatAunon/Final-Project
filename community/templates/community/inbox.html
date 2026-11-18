@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}กล่องข้อความ | GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8 max-w-4xl">
+    <div class="bg-white rounded-xl shadow-md overflow-hidden min-h-[600px] flex flex-col">
+        <div class="bg-primary text-white px-6 py-4 border-b border-primary-dark">
+            <h4 class="text-xl font-bold flex items-center mb-0">
+                <i class="fas fa-inbox mr-3"></i> กล่องข้อความ
+            </h4>
+        </div>
+
+        <div class="flex-grow bg-gray-50">
+            {% if conversations %}
+            <div class="divide-y divide-gray-100">
+                {% for conv in conversations %}
+                {% if conv.from_user == request.user %}
+                    {% with other_user=conv.to_user %}
+                    <div class="px-6 py-4 flex items-center justify-between hover:bg-white transition duration-150 group">
+                        <a href="{% url 'community:chat' other_user.username %}" class="flex items-center gap-4 flex-grow min-w-0 pr-3">
+                            <div class="relative shrink-0">
+                                {% if other_user.profile.avatar %}
+                                <img src="{{ other_user.profile.avatar.url }}" alt="{{ other_user.username }}"
+                                    class="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm">
+                                {% else %}
+                                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                    <i class="fas fa-user text-lg"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="min-w-0">
+                                <h6 class="font-bold text-gray-900 text-base mb-1 truncate">{{ other_user.username }}</h6>
+                                <p class="text-gray-500 text-sm flex items-center truncate">
+                                    <span class="inline-block bg-gray-100 text-gray-600 text-[10px] px-1.5 rounded mr-2 shrink-0">คุณ:</span>
+                                    <span class="truncate">{{ conv.content|default:"[ไฟล์แนบ]"|truncatewords:10 }}</span>
+                                </p>
+                            </div>
+                        </a>
+
+                        <div class="flex items-center gap-3 shrink-0">
+                            <div class="flex flex-col items-end">
+                                <small class="text-xs text-gray-400 font-medium">
+                                    {{ conv.created_at|date:'d M ' }}
+                                </small>
+                            </div>
+
+                            <!-- Delete conversation button -->
+                            <form method="POST" action="{% url 'community:delete_conversation' other_user.username %}" class="inline" onsubmit="return confirm('คุณต้องการลบประวัติการสนทนากับ {{ other_user.username }} ทั้งหมดใช่หรือไม่?');">
+                                {% csrf_token %}
+                                <button type="submit" title="ลบการสนทนานี้" class="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition" onclick="event.stopPropagation();">
+                                    <i class="fas fa-trash-alt text-sm"></i>
+                                </button>
+                            </form>
+
+                            <a href="{% url 'community:chat' other_user.username %}" class="text-gray-300 hover:text-gray-600">
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    {% with other_user=conv.from_user %}
+                    <div class="px-6 py-4 flex items-center justify-between hover:bg-white transition duration-150 group {% if not conv.is_read %}bg-white{% endif %}">
+                        <a href="{% url 'community:chat' other_user.username %}" class="flex items-center gap-4 flex-grow min-w-0 pr-3">
+                            <div class="relative shrink-0">
+                                {% if other_user.profile.avatar %}
+                                <img src="{{ other_user.profile.avatar.url }}" alt="{{ other_user.username }}"
+                                    class="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm">
+                                {% else %}
+                                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                    <i class="fas fa-user text-lg"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="min-w-0">
+                                <h6 class="font-bold text-gray-900 text-base mb-1 truncate">{{ other_user.username }}</h6>
+                                <p class="text-gray-600 font-medium text-sm truncate">
+                                    {{ conv.content|default:"[ไฟล์แนบ]"|truncatewords:10 }}
+                                </p>
+                            </div>
+                        </a>
+
+                        <div class="flex items-center gap-3 shrink-0">
+                            <div class="flex flex-col items-end">
+                                <small class="text-xs text-primary font-bold">
+                                    {{ conv.created_at|date:'d M ' }}
+                                </small>
+                                {% if not conv.is_read %}
+                                <div class="w-2.5 h-2.5 bg-primary rounded-full mt-1"></div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Delete conversation button -->
+                            <form method="POST" action="{% url 'community:delete_conversation' other_user.username %}" class="inline" onsubmit="return confirm('คุณต้องการลบประวัติการสนทนากับ {{ other_user.username }} ทั้งหมดใช่หรือไม่?');">
+                                {% csrf_token %}
+                                <button type="submit" title="ลบการสนทนานี้" class="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition" onclick="event.stopPropagation();">
+                                    <i class="fas fa-trash-alt text-sm"></i>
+                                </button>
+                            </form>
+
+                            <a href="{% url 'community:chat' other_user.username %}" class="text-gray-300 hover:text-gray-600">
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center justify-center h-full py-20 text-center">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6 text-gray-300">
+                    <i class="fas fa-inbox text-5xl"></i>
+                </div>
+                <h5 class="text-xl font-bold text-gray-800 mb-2">กล่องข้อความว่างเปล่า</h5>
+                <p class="text-gray-500 mb-8 max-w-xs mx-auto">ยังไม่มีการสนทนา
+                    เริ่มต้นทักทายเพื่อนใหม่เพื่อแลกเปลี่ยนประสบการณ์เกม!</p>
+                <a href="{% url 'community:friends_list' %}"
+                    class="bg-primary hover:bg-opacity-90 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:-translate-y-1">
+                    <i class="fas fa-search mr-2"></i> ค้นหาเพื่อน
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

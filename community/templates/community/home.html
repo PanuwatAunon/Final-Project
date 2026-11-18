@@ -1,0 +1,450 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}หน้าแรก - GameCommu{% endblock %}
+
+{% block content %}
+<div class="-ml-2 sm:-ml-3 lg:-ml-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- Sidebar Left: Popular Games (Far-Left Aligned & Compact Top 15) -->
+    <div class="hidden lg:block lg:col-span-3 xl:col-span-3">
+        <div class="bg-white rounded-xl shadow-sm border border-[#D3D1C7] sticky top-20 overflow-hidden max-h-[calc(100vh-6rem)] flex flex-col">
+            <div class="p-3.5 border-b border-[#D3D1C7] flex items-center justify-between bg-gray-50/50 flex-shrink-0">
+                <h6 class="font-bold text-[#2C2C2A] text-sm flex items-center">
+                    <i class="fas fa-fire text-[#EF9F27] mr-1.5"></i> เกมยอดนิยม (10 อันดับ)
+                </h6>
+                <a href="{% url 'community:game_list' %}"
+                    class="text-xs text-[#7F77DD] font-semibold hover:underline">ดูทั้งหมด</a>
+            </div>
+            <ul class="divide-y divide-gray-100 overflow-y-auto custom-scrollbar flex-grow">
+                {% for game in games %}
+                <li class="hover:bg-[#EEEDFA]/50 transition">
+                    <a href="{% url 'community:game_detail' game.id %}" class="flex items-center px-3 py-2.5 group">
+                        <span class="w-5 text-[11px] font-bold {% if forloop.counter <= 3 %}text-[#EF9F27]{% else %}text-gray-400{% endif %} text-center mr-1.5 flex-shrink-0">
+                            {{ forloop.counter }}
+                        </span>
+                        {% if game.cover_image %}
+                        <img src="{{ game.cover_image.url }}"
+                            class="w-7 h-7 rounded-lg object-cover mr-2 group-hover:scale-105 transition-transform flex-shrink-0 border border-[#D3D1C7]"
+                            alt="Cover">
+                        {% else %}
+                        <div
+                            class="w-7 h-7 bg-[#EEEDFA] rounded-lg mr-2 flex-shrink-0 flex items-center justify-center text-[#7F77DD] border border-[#D3D1C7]">
+                            <i class="fas fa-gamepad text-xs"></i>
+                        </div>
+                        {% endif %}
+                        <span
+                            class="text-[#2C2C2A] font-medium text-xs truncate flex-1 min-w-0 group-hover:text-[#7F77DD]">
+                            {{ game.name }}</span>
+                        <span class="text-[11px] text-[#E24B4A] font-semibold flex items-center gap-0.5 ml-1.5 flex-shrink-0">
+                            <i class="fas fa-heart text-[9px]"></i> {{ game.likes.count }}
+                        </span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Main Feed (Right Side - Expanded Layout) -->
+    <div class="col-span-1 lg:col-span-9 space-y-5">
+
+        <!-- Create Post Box -->
+        {% if user.is_authenticated %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="flex items-start">
+                {% if user.profile.avatar %}
+                <img src="{{ user.profile.avatar.url }}" class="w-10 h-10 rounded-full object-cover mr-3" alt="Avatar">
+                {% else %}
+                <div class="w-10 h-10 rounded-full bg-gray-200 flex justify-center items-center mr-3 flex-shrink-0">
+                    <i class="fas fa-user text-gray-500"></i>
+                </div>
+                {% endif %}
+
+                <div class="flex-grow">
+                    <form action="{% url 'community:create_thread' %}" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="home">
+                        <div>
+                            <input type="text" name="content" id="postTitleInput"
+                                class="w-full bg-gray-100 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition cursor-pointer"
+                                placeholder="คุณกำลังคิดอะไรอยู่ {{ user.username }}?" required>
+                        </div>
+
+                        <!-- Hidden Expanded Section -->
+                        <div id="expandedPostForm" class="hidden space-y-3 mt-3 border-t border-gray-100 pt-3">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">การมองเห็น:</label>
+                                {{ form.visibility }}
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-image w-6 text-center text-green-500 mr-2"></i>
+                                    <span class="mr-2">รูปภาพ:</span>
+                                    <div class="flex-grow">
+                                        {{ form.image }}
+                                    </div>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-video w-6 text-center text-red-500 mr-2"></i>
+                                    <span class="mr-2">วิดีโอ:</span>
+                                    <div class="flex-grow">
+                                        {{ form.video }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit"
+                                class="w-full bg-primary text-white font-medium py-2 rounded-lg hover:bg-opacity-90 transition shadow-sm">
+                                โพสต์เลย
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Feed Items (Real-time Auto-Polling 3s) -->
+        <div id="feedListContainer" class="space-y-5">
+            {% include 'community/includes/activity_feed_partial.html' %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- Custom Game Selection Logic ---
+        const postForms = document.querySelectorAll('form[action*="create_thread"]');
+
+        postForms.forEach(form => {
+            const gameSelect = form.querySelector('select[name="game"]');
+            const customGameInput = form.querySelector('input[name="custom_game_name"]');
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                // Ignore hidden inputs or checkboxes for basic styling
+                if (input.type !== 'hidden' && input.type !== 'file') {
+                    input.classList.add('w-full', 'border', 'border-gray-200', 'rounded-md', 'px-3', 'py-2', 'focus:ring-2', 'focus:ring-primary/50', 'focus:border-primary', 'outline-none', 'transition', 'text-sm');
+                }
+                if (input.type === 'file') {
+                    input.classList.add('block', 'w-full', 'text-sm', 'text-gray-500',
+                        'file:mr-4', 'file:py-2', 'file:px-4',
+                        'file:rounded-full', 'file:border-0',
+                        'file:text-sm', 'file:font-semibold',
+                        'file:bg-primary/10', 'file:text-primary',
+                        'hover:file:bg-primary/20');
+                }
+            });
+
+            if (gameSelect && customGameInput) {
+                // Add "Other" option
+                const otherOption = new Option('อื่นๆ (ระบุเอง)', 'other');
+                gameSelect.add(otherOption);
+
+                // Toggle input handling
+                function toggleCustomGame() {
+                    if (gameSelect.value === 'other') {
+                        customGameInput.style.display = 'block';
+                        customGameInput.required = true;
+                    } else {
+                        customGameInput.style.display = 'none';
+                        customGameInput.required = false;
+                        customGameInput.value = '';
+                    }
+                }
+
+                gameSelect.addEventListener('change', toggleCustomGame);
+
+                form.addEventListener('submit', function (e) {
+                    if (gameSelect.value === 'other') {
+                        gameSelect.removeAttribute('name');
+                    }
+                });
+
+                toggleCustomGame();
+            }
+        });
+
+        // --- Post Form Toggle Logic (Vanilla JS) ---
+        const toggleBtn = document.getElementById('togglePostFormBtn');
+        const postTitleInput = document.getElementById('postTitleInput');
+        const expandedForm = document.getElementById('expandedPostForm');
+
+        function expandForm() {
+            if (expandedForm && expandedForm.classList.contains('hidden')) {
+                expandedForm.classList.remove('hidden');
+            }
+        }
+
+        if (postTitleInput) {
+            postTitleInput.addEventListener('focus', expandForm);
+            postTitleInput.addEventListener('click', expandForm);
+        }
+
+        if (toggleBtn && expandedForm) {
+            toggleBtn.addEventListener('click', function () {
+                if (expandedForm.classList.contains('hidden')) {
+                    expandedForm.classList.remove('hidden');
+                    if (postTitleInput) postTitleInput.focus();
+                } else {
+                    expandedForm.classList.add('hidden');
+                }
+            });
+        }
+    });
+
+    function openReactionPopup(container) {
+        if (container._reactionHideTimer) {
+            clearTimeout(container._reactionHideTimer);
+            container._reactionHideTimer = null;
+        }
+        const bar = container.querySelector('.reaction-bar');
+        if (bar) {
+            bar.style.display = 'flex';
+            bar.style.opacity = '1';
+            bar.style.pointerEvents = 'auto';
+            bar.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            bar.classList.add('flex', 'opacity-100');
+        }
+    }
+
+    function closeReactionPopup(container) {
+        container._reactionHideTimer = setTimeout(() => {
+            const bar = container.querySelector('.reaction-bar');
+            if (bar) {
+                bar.style.opacity = '0';
+                bar.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    if (bar.style.opacity === '0') {
+                        bar.style.display = 'none';
+                        bar.classList.remove('flex');
+                        bar.classList.add('hidden');
+                    }
+                }, 300);
+            }
+        }, 500);
+    }
+
+    function getCsrfToken() {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === 'csrftoken=') {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        if (!cookieValue) {
+            const el = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (el) cookieValue = el.value;
+        }
+        return cookieValue || '{{ csrf_token }}';
+    }
+
+    function likeActivity(type, id, reactionType, element) {
+        const token = getCsrfToken();
+        const url = type === 'thread' ? `/thread/${id}/react/` : `/guide/${id}/react/`;
+        const formData = new FormData();
+        formData.append('reaction_type', reactionType || 'like');
+        formData.append('csrfmiddlewaretoken', token);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': token
+            },
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                const targetEl = element.closest ? element : (element.parentElement || element);
+                const wrapper = targetEl ? targetEl.closest('.reaction-wrapper') : null;
+                if (!wrapper) return;
+
+                // Instantly hide pop-up bar after choosing reaction
+                const bar = wrapper.querySelector('.reaction-bar');
+                if (bar) {
+                    bar.style.opacity = '0';
+                    bar.style.pointerEvents = 'none';
+                    bar.style.display = 'none';
+                }
+
+                const iconContainer = wrapper.querySelector('.reaction-icon');
+                const countSpan = wrapper.querySelector('.like-count');
+                const mainBtn = wrapper.querySelector('.reaction-btn');
+
+                if (countSpan) countSpan.textContent = data.likes;
+
+                if (data.user_reaction) {
+                    const emojis = { 'like': '❤️', 'laugh': '😆', 'sad': '😢', 'angry': '😡' };
+                    if (iconContainer) iconContainer.innerHTML = emojis[data.user_reaction] || '❤️';
+                    if (mainBtn) {
+                        mainBtn.classList.remove('text-[#5F5E5A]');
+                        mainBtn.classList.add('text-[#E24B4A]');
+                    }
+                } else {
+                    if (iconContainer) iconContainer.innerHTML = '<i class="far fa-heart text-base group-hover:scale-110 transition-transform"></i>';
+                    if (mainBtn) {
+                        mainBtn.classList.remove('text-[#E24B4A]');
+                        mainBtn.classList.add('text-[#5F5E5A]');
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Reaction Failed:', err);
+            });
+    }
+
+    // Real-time Home Feed Auto-Polling with Smart DOM Diffing
+    let isHomeFeedPolling = false;
+
+    function pollHomeFeed() {
+        if (isHomeFeedPolling) return;
+
+        // Skip updating if user is typing in a form or interacting with inputs
+        if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+            return;
+        }
+        // Skip if a reaction bar popup is currently hovering open
+        const openBar = document.querySelector('.reaction-bar:not(.hidden)');
+        if (openBar && window.getComputedStyle(openBar).display !== 'none') {
+            return;
+        }
+
+        // Check if any video is actively playing right now
+        const isVideoPlaying = Array.from(document.querySelectorAll('#feedListContainer video'))
+            .some(v => !v.paused && !v.ended && v.currentTime > 0);
+
+        isHomeFeedPolling = true;
+
+        fetch("{% url 'community:home' %}?poll=1", {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.text();
+        })
+        .then(html => {
+            const container = document.getElementById('feedListContainer');
+            if (!container || !html || !html.trim()) return;
+
+            const parser = new DOMParser();
+            const newDoc = parser.parseFromString(html, 'text/html');
+            const newCards = Array.from(newDoc.querySelectorAll('[data-activity-id]'));
+
+            // If server returned no activity cards (empty feed)
+            if (newCards.length === 0) {
+                if (!container.querySelector('.empty-feed-placeholder')) {
+                    container.innerHTML = html;
+                }
+                return;
+            }
+
+            // If container currently shows empty placeholder, remove it
+            const emptyPlaceholder = container.querySelector('.empty-feed-placeholder');
+            if (emptyPlaceholder) {
+                container.innerHTML = '';
+            }
+
+            const existingCards = Array.from(container.querySelectorAll('[data-activity-id]'));
+            const existingIdMap = new Map();
+            existingCards.forEach(card => {
+                existingIdMap.set(card.getAttribute('data-activity-id'), card);
+            });
+
+            // 1. Identify any brand new cards that should be added to the top
+            // If a video is actively playing, defer adding new cards to avoid jarring layout shifts
+            if (!isVideoPlaying) {
+                const cardsToPrepend = [];
+                for (const newCard of newCards) {
+                    const actId = newCard.getAttribute('data-activity-id');
+                    if (!existingIdMap.has(actId)) {
+                        cardsToPrepend.push(newCard);
+                    } else {
+                        break;
+                    }
+                }
+
+                if (cardsToPrepend.length > 0) {
+                    const firstChild = container.firstElementChild;
+                    cardsToPrepend.reverse().forEach(card => {
+                        const importedCard = document.importNode(card, true);
+                        container.insertBefore(importedCard, firstChild);
+                    });
+                }
+            }
+
+            // 2. For cards that already exist: update ONLY dynamic counters & reaction icons
+            // The card itself and any <video> or <img> tags are NEVER reloaded or replaced!
+            newCards.forEach(newCard => {
+                const actId = newCard.getAttribute('data-activity-id');
+                const existingCard = existingIdMap.get(actId);
+                if (!existingCard) return;
+
+                // Update Like Count
+                const newLikeCount = newCard.querySelector('.like-count');
+                const existingLikeCount = existingCard.querySelector('.like-count');
+                if (newLikeCount && existingLikeCount && newLikeCount.textContent.trim() !== existingLikeCount.textContent.trim()) {
+                    existingLikeCount.textContent = newLikeCount.textContent.trim();
+                }
+
+                // Update Reaction Icon & Button State
+                const newReactionBtn = newCard.querySelector('.reaction-btn');
+                const existingReactionBtn = existingCard.querySelector('.reaction-btn');
+                if (newReactionBtn && existingReactionBtn) {
+                    const newIcon = newReactionBtn.querySelector('.reaction-icon');
+                    const existingIcon = existingReactionBtn.querySelector('.reaction-icon');
+                    if (newIcon && existingIcon && newIcon.innerHTML.trim() !== existingIcon.innerHTML.trim()) {
+                        existingIcon.innerHTML = newIcon.innerHTML.trim();
+                    }
+                    if (existingReactionBtn.className !== newReactionBtn.className) {
+                        existingReactionBtn.className = newReactionBtn.className;
+                    }
+                }
+
+                // Update Comment Count
+                const newCommentSpan = newCard.querySelector('.comment-count');
+                const existingCommentSpan = existingCard.querySelector('.comment-count');
+                if (newCommentSpan && existingCommentSpan && newCommentSpan.textContent.trim() !== existingCommentSpan.textContent.trim()) {
+                    existingCommentSpan.textContent = newCommentSpan.textContent.trim();
+                }
+
+                // Update Timesince text
+                const newTime = newCard.querySelector('.timesince-text');
+                const existingTime = existingCard.querySelector('.timesince-text');
+                if (newTime && existingTime && newTime.textContent.trim() !== existingTime.textContent.trim()) {
+                    existingTime.textContent = newTime.textContent.trim();
+                }
+            });
+
+            // 3. Remove cards deleted on the server (only if video isn't playing)
+            if (!isVideoPlaying) {
+                const newIdSet = new Set(newCards.map(c => c.getAttribute('data-activity-id')));
+                existingCards.forEach(card => {
+                    const actId = card.getAttribute('data-activity-id');
+                    if (actId && !newIdSet.has(actId)) {
+                        card.remove();
+                    }
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Home feed poll error:', err);
+        })
+        .finally(() => {
+            isHomeFeedPolling = false;
+        });
+    }
+    setInterval(pollHomeFeed, 3500);
+</script>
+{% endblock %}

@@ -1,0 +1,1149 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ศูนย์ควบคุมหลังบ้าน (Staff Back-Office) - GameCommu{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto pb-16">
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-[#2C2C2A] via-[#3a3a38] to-[#2C2C2A] text-white rounded-3xl p-6 md:p-8 mb-8 shadow-xl border border-gray-700/50 relative overflow-hidden">
+        <div class="absolute right-0 top-0 translate-x-10 -translate-y-10 w-96 h-96 bg-[#7F77DD]/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#7F77DD] text-white shadow-sm">
+                        <i class="fas fa-shield-halved text-xs"></i>
+                        Staff Portal
+                    </span>
+                    <span class="text-xs text-gray-400 font-medium">เข้าสู่ระบบในฐานะ: <strong class="text-white font-semibold">{{ request.user.username }}</strong> {% if request.user.is_superuser %}(Superuser){% else %}(Staff){% endif %}</span>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">
+                    สำหรับผู้ดูแล
+                </h1>
+                <p class="text-gray-300 text-sm mt-1 max-w-2xl">
+                    จัดการข้อมูลสมาชิก ตรวจสอบรายงานปัญหา จัดการเกม และดูแลเนื้อหาในชุมชนได้อย่างสะดวกรวดเร็ว
+                </p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3">
+                {% if request.user.is_superuser %}
+                <a href="/admin/" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl text-sm border border-white/20 transition">
+                    <i class="fas fa-database text-xs"></i>
+                    <span>Django Admin</span>
+                    <i class="fas fa-arrow-up-right-from-square text-[10px] text-gray-300"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto mt-6 pt-6 border-t border-gray-700/60 scrollbar-none">
+            <a href="?tab=overview" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap {% if active_tab == 'overview' %}bg-[#7F77DD] text-white shadow-md{% else %}text-gray-300 hover:text-white hover:bg-white/10{% endif %}">
+                <i class="fas fa-chart-pie text-xs"></i>
+                <span>ภาพรวมและสถิติ</span>
+            </a>
+            <a href="?tab=users" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap {% if active_tab == 'users' %}bg-[#7F77DD] text-white shadow-md{% else %}text-gray-300 hover:text-white hover:bg-white/10{% endif %}">
+                <i class="fas fa-users text-xs"></i>
+                <span>จัดการสมาชิก</span>
+            </a>
+            <a href="?tab=reports" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap relative {% if active_tab == 'reports' %}bg-[#7F77DD] text-white shadow-md{% else %}text-gray-300 hover:text-white hover:bg-white/10{% endif %}">
+                <i class="fas fa-flag text-xs"></i>
+                <span>ศูนย์ตรวจรายงาน</span>
+                {% if pending_reports_count > 0 %}
+                <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold bg-[#E24B4A] text-white rounded-full leading-none">
+                    {{ pending_reports_count }}
+                </span>
+                {% endif %}
+            </a>
+            <a href="?tab=games" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap {% if active_tab == 'games' %}bg-[#7F77DD] text-white shadow-md{% else %}text-gray-300 hover:text-white hover:bg-white/10{% endif %}">
+                <i class="fas fa-gamepad text-xs"></i>
+                <span>จัดการเกม</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- TAB 1: OVERVIEW -->
+    <!-- ================================================================= -->
+    {% if active_tab == 'overview' %}
+    <div class="space-y-8">
+        <!-- Quick Stats Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div class="bg-white rounded-2xl p-4 border border-[#D3D1C7]/60 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[#7F77DD]">
+                    <span class="text-xs font-semibold text-[#5F5E5A]">สมาชิกทั้งหมด</span>
+                    <i class="fas fa-users text-lg"></i>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl font-bold text-[#2C2C2A]">{{ total_users }}</span>
+                    <span class="text-xs text-gray-500 block">บัญชีในระบบ</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-[#D3D1C7]/60 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[#1D9E75]">
+                    <span class="text-xs font-semibold text-[#5F5E5A]">เกมทั้งหมด</span>
+                    <i class="fas fa-gamepad text-lg"></i>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl font-bold text-[#2C2C2A]">{{ total_games }}</span>
+                    <span class="text-xs text-gray-500 block">หมวดหมู่เกม</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-[#D3D1C7]/60 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[#3B82F6]">
+                    <span class="text-xs font-semibold text-[#5F5E5A]">กระทู้พูดคุย</span>
+                    <i class="fas fa-comments text-lg"></i>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl font-bold text-[#2C2C2A]">{{ total_threads }}</span>
+                    <span class="text-xs text-gray-500 block">โพสต์ทั้งหมด</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-[#D3D1C7]/60 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[#8B5CF6]">
+                    <span class="text-xs font-semibold text-[#5F5E5A]">ไกด์เกม</span>
+                    <i class="fas fa-book-open text-lg"></i>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl font-bold text-[#2C2C2A]">{{ total_guides }}</span>
+                    <span class="text-xs text-gray-500 block">บทความไกด์</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-[#D3D1C7]/60 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[#F59E0B]">
+                    <span class="text-xs font-semibold text-[#5F5E5A]">กลุ่มสนทนา</span>
+                    <i class="fas fa-people-group text-lg"></i>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl font-bold text-[#2C2C2A]">{{ total_groups }}</span>
+                    <span class="text-xs text-gray-500 block">ห้องแชทกลุ่ม</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border {% if pending_reports_count > 0 %}border-[#E24B4A] bg-red-50/20{% else %}border-[#D3D1C7]/60{% endif %} shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[#E24B4A]">
+                    <span class="text-xs font-semibold text-[#5F5E5A]">รายงานรอดำเนินการ</span>
+                    <i class="fas fa-triangle-exclamation text-lg"></i>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl font-bold {% if pending_reports_count > 0 %}text-[#E24B4A]{% else %}text-[#2C2C2A]{% endif %}">{{ pending_reports_count }}</span>
+                    <span class="text-xs {% if pending_reports_count > 0 %}text-[#E24B4A] font-semibold{% else %}text-gray-500{% endif %} block">เคสที่ยังไม่ได้ตรวจ</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Moderation Alerts -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left 2 Cols: Pending Reports Queue -->
+            <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-[#D3D1C7]/60 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-red-100 text-[#E24B4A] flex items-center justify-center font-bold">
+                            <i class="fas fa-flag text-sm"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-[#2C2C2A] text-base">รายงานที่ต้องดำเนินการด่วน (Pending Reports)</h2>
+                            <p class="text-xs text-gray-500">จัดการเคสร้องเรียนจากสมาชิกใน 1 คลิก</p>
+                        </div>
+                    </div>
+                    <a href="?tab=reports" class="text-xs font-bold text-[#7F77DD] hover:underline flex items-center gap-1">
+                        <span>ดูทั้งหมด ({{ pending_reports_count }})</span>
+                        <i class="fas fa-chevron-right text-[10px]"></i>
+                    </a>
+                </div>
+
+                {% if reports_page %}
+                <div class="space-y-3">
+                    {% for report in reports_page|slice:":4" %}
+                    <div class="p-4 rounded-xl border border-gray-100 hover:border-[#7F77DD]/40 bg-gray-50/50 hover:bg-[#EEEDFA]/20 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-[#E24B4A]">
+                                    {{ report.get_report_type_display }}
+                                </span>
+                                <span class="text-xs text-gray-400">โดย <strong class="text-gray-700">{{ report.reporter.username }}</strong> &bull; {{ report.created_at|date:"d M H:i" }}</span>
+                            </div>
+                            <div class="text-sm font-bold text-gray-900">
+                                {% if report.thread %}
+                                <a href="{% url 'community:thread_detail' report.thread.id %}" target="_blank" class="inline-flex items-center gap-1.5 hover:text-[#7F77DD] hover:underline" title="คลิกเพื่อเปิดดูกระทู้">
+                                    <span class="text-xs px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold">กระทู้</span>
+                                    <span>"{{ report.thread.title|truncatechars:40 }}"</span>
+                                    <i class="fas fa-arrow-up-right-from-square text-[10px] text-[#7F77DD]"></i>
+                                </a>
+                                {% elif report.comment %}
+                                <a href="{% if report.comment.thread %}{% url 'community:thread_detail' report.comment.thread.id %}{% else %}#{% endif %}" target="_blank" class="inline-flex items-center gap-1.5 hover:text-[#7F77DD] hover:underline" title="คลิกเพื่อเปิดดูความคิดเห็นในกระทู้">
+                                    <span class="text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">ความคิดเห็น</span>
+                                    <span>"{{ report.comment.content|truncatechars:40 }}"</span>
+                                    <i class="fas fa-arrow-up-right-from-square text-[10px] text-emerald-600"></i>
+                                </a>
+                                {% elif report.guide %}
+                                <a href="{% url 'community:guide_detail' report.guide.id %}" target="_blank" class="inline-flex items-center gap-1.5 hover:text-[#7F77DD] hover:underline" title="คลิกเพื่อเปิดดูไกด์เกม">
+                                    <span class="text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-semibold">ไกด์</span>
+                                    <span>"{{ report.guide.title|truncatechars:40 }}"</span>
+                                    <i class="fas fa-arrow-up-right-from-square text-[10px] text-purple-600"></i>
+                                </a>
+                                {% elif report.reported_user %}
+                                <a href="{% url 'community:user_profile' report.reported_user.username %}" target="_blank" class="inline-flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:underline" title="คลิกเพื่อเปิดดูโปรไฟล์ผู้ใช้">
+                                    <span class="text-xs px-2 py-0.5 rounded bg-red-50 text-red-700 font-semibold">สมาชิก</span>
+                                    <span>{{ report.reported_user.username }}</span>
+                                    <i class="fas fa-arrow-up-right-from-square text-[10px] text-red-500"></i>
+                                </a>
+                                {% else %}
+                                <span class="text-gray-700">{{ report.description|truncatechars:40 }}</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-xs text-gray-500 italic">"{{ report.description }}"</p>
+                        </div>
+
+                        <!-- 1-Click Moderation Buttons -->
+                        <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                            <!-- View Content Button -->
+                            {% if report.thread %}
+                            <a href="{% url 'community:thread_detail' report.thread.id %}" target="_blank" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-[#7F77DD] border border-indigo-200 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-arrow-up-right-from-square text-[10px]"></i>
+                                <span>เปิดดูกระทู้</span>
+                            </a>
+                            {% elif report.comment and report.comment.thread %}
+                            <a href="{% url 'community:thread_detail' report.comment.thread.id %}" target="_blank" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-arrow-up-right-from-square text-[10px]"></i>
+                                <span>เปิดดูความเห็น</span>
+                            </a>
+                            {% elif report.guide %}
+                            <a href="{% url 'community:guide_detail' report.guide.id %}" target="_blank" class="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-arrow-up-right-from-square text-[10px]"></i>
+                                <span>เปิดดูไกด์</span>
+                            </a>
+                            {% elif report.reported_user %}
+                            <a href="{% url 'community:user_profile' report.reported_user.username %}" target="_blank" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-user text-[10px]"></i>
+                                <span>ดูโปรไฟล์</span>
+                            </a>
+                            {% endif %}
+
+                            {% if report.thread or report.comment or report.guide %}
+                            <!-- 2. Approve & Delete Content -->
+                            <form method="POST" action="{% url 'community:backoffice_report_action' report.id %}" onsubmit="return confirm('ยืนยันอนุมัติรายงานและลบเนื้อหานี้?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="approve_delete">
+                                <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1 shadow-sm" title="ลบเฉพาะเนื้อหานี้">
+                                    <i class="fas fa-trash-can text-[10px]"></i>
+                                    <span>ลบเนื้อหา</span>
+                                </button>
+                            </form>
+
+                            <!-- 3. Warn Author -->
+                            {% if report.reported_user and not report.reported_user.is_staff %}
+                            <form method="POST" action="{% url 'community:backoffice_report_action' report.id %}" onsubmit="return confirm('ยืนยันอนุมัติรายงานและส่งหนังสือตักเตือนไปยัง {{ report.reported_user.username }}');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="approve_warn">
+                                <button type="submit" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1 shadow-sm" title="ส่งหนังสือตักเตือน">
+                                    <i class="fas fa-triangle-exclamation text-[10px]"></i>
+                                    <span>ตักเตือน</span>
+                                </button>
+                            </form>
+
+                            <!-- 4. Ban Author (Modal with duration) -->
+                            <button type="button" onclick="openReportBanModal('{{ report.id }}', '{{ report.reported_user.username|escapejs }}', '{{ report.get_report_type_display|escapejs }}: {{ report.description|escapejs }}', true)"
+                                class="px-3 py-1.5 bg-[#E24B4A] hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1 shadow-sm" title="แบนผู้ใช้ (กำหนดวัน/ถาวร)">
+                                <i class="fas fa-user-slash text-[10px]"></i>
+                                <span>แบน</span>
+                            </button>
+                            {% endif %}
+
+                            {% else %}
+                            <!-- User Account Report Actions -->
+                            {% if report.reported_user and not report.reported_user.is_staff %}
+                            <!-- 3. Warn User -->
+                            <form method="POST" action="{% url 'community:backoffice_report_action' report.id %}" onsubmit="return confirm('ยืนยันอนุมัติรายงานและส่งหนังสือตักเตือนไปยัง {{ report.reported_user.username }}?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="approve_warn">
+                                <button type="submit" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1 shadow-sm">
+                                    <i class="fas fa-triangle-exclamation text-[10px]"></i>
+                                    <span>ตักเตือน</span>
+                                </button>
+                            </form>
+
+                            <!-- 4. Ban User (Modal with duration) -->
+                            <button type="button" onclick="openReportBanModal('{{ report.id }}', '{{ report.reported_user.username|escapejs }}', '{{ report.get_report_type_display|escapejs }}: {{ report.description|escapejs }}', false)"
+                                class="px-3 py-1.5 bg-[#E24B4A] hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-user-slash text-[10px]"></i>
+                                <span>แบน</span>
+                            </button>
+                            {% endif %}
+                            {% endif %}
+
+                            <!-- Reject -->
+                            <form method="POST" action="{% url 'community:backoffice_report_action' report.id %}" onsubmit="return confirm('ปฏิเสธรายงานนี้ (ไม่พบความผิด)?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold transition">
+                                    <span>ยกเลิก</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-400">
+                    <i class="fas fa-circle-check text-3xl text-emerald-500 mb-2 block"></i>
+                    <p class="text-sm">ไม่มีรายงานปัญหาที่ค้างอยู่ ชุมชนปลอดภัยเรียบร้อยดี!</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right 1 Col: Quick Control Shortcuts -->
+            <div class="space-y-6">
+                <!-- Action Shortcuts -->
+                <div class="bg-white rounded-2xl p-6 border border-[#D3D1C7]/60 shadow-sm">
+                    <h2 class="font-bold text-[#2C2C2A] text-base mb-4 flex items-center gap-2">
+                        <i class="fas fa-bolt text-amber-500"></i>
+                        <span>เครื่องมือจัดการด่วน</span>
+                    </h2>
+                    <div class="grid grid-cols-1 gap-2.5">
+                        <button onclick="openModal('addGameModal')" class="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-[#7F77DD]/40 bg-gray-50/50 hover:bg-[#EEEDFA]/30 transition group text-left">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 group-hover:text-[#7F77DD] block">เพิ่มเกมใหม่ในระบบ</span>
+                                    <span class="text-xs text-gray-400">สร้างเกมเพื่อรองรับกระทู้และไกด์</span>
+                                </div>
+                            </div>
+                            <i class="fas fa-arrow-right text-xs text-gray-400 group-hover:text-[#7F77DD] group-hover:translate-x-1 transition"></i>
+                        </button>
+
+                        <a href="?tab=users" class="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-[#7F77DD]/40 bg-gray-50/50 hover:bg-[#EEEDFA]/30 transition group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-users-gear text-xs"></i>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 group-hover:text-[#7F77DD] block">จัดการบัญชีสมาชิก</span>
+                                    <span class="text-xs text-gray-400">ตรวจสอบสถานะและดูแลบัญชีสมาชิก</span>
+                                </div>
+                            </div>
+                            <i class="fas fa-arrow-right text-xs text-gray-400 group-hover:text-[#7F77DD] group-hover:translate-x-1 transition"></i>
+                        </a>
+
+                        <a href="?tab=users&user_filter=banned" class="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-[#7F77DD]/40 bg-gray-50/50 hover:bg-[#EEEDFA]/30 transition group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-user-lock text-xs"></i>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 group-hover:text-[#7F77DD] block">ปลดแบน / รายชื่อถูกแบน</span>
+                                    <span class="text-xs text-gray-400">มีผู้ใช้ถูกระงับ {{ banned_users_count }} คน</span>
+                                </div>
+                            </div>
+                            <i class="fas fa-arrow-right text-xs text-gray-400 group-hover:text-[#7F77DD] group-hover:translate-x-1 transition"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- System Info Card -->
+                <div class="bg-gradient-to-br from-[#EEEDFA] to-[#FAF9FD] rounded-2xl p-5 border border-[#7F77DD]/30 text-sm">
+                    <div class="flex items-center gap-2 text-[#7F77DD] font-bold mb-2">
+                        <i class="fas fa-info-circle"></i>
+                        <span>ข้อแนะนำสำหรับเจ้าหน้าที่</span>
+                    </div>
+                    <ul class="text-xs text-gray-600 space-y-1.5 list-disc list-inside">
+                        <li>สามารถตรวจสอบสถานะและดูแลบัญชีสมาชิกได้ในแท็บสมาชิก</li>
+                        <li>การแบนสามารถเลือกได้ทั้งแบบระบุจำนวนวัน หรือระงับถาวร</li>
+                        <li>หากต้องการแก้ไขข้อมูลโครงสร้างขั้นสูง สามารถใช้ Django Admin ได้ตลอดเวลา</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ================================================================= -->
+    <!-- TAB 2: USER MANAGEMENT -->
+    <!-- ================================================================= -->
+    {% if active_tab == 'users' %}
+    <div class="bg-white rounded-2xl border border-[#D3D1C7]/60 shadow-sm p-6 space-y-6">
+        <!-- Controls & Filters -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h2 class="font-bold text-xl text-[#2C2C2A]">การจัดการสมาชิก (User Management)</h2>
+                <p class="text-xs text-gray-500">ค้นหา ตรวจสอบโปรไฟล์ ปลดแบน หรือรีเซ็ตรหัสผ่านสมาชิกได้ทันที</p>
+            </div>
+
+            <!-- Search Form -->
+            <form method="GET" class="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="tab" value="users">
+                <input type="hidden" name="user_filter" value="{{ user_filter }}">
+                <div class="relative">
+                    <input type="text" name="q_user" value="{{ q_user }}" placeholder="ค้นหา username หรือ email..."
+                        class="pl-9 pr-4 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#7F77DD]/50 outline-none w-64">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
+                </div>
+                <button type="submit" class="px-4 py-2 bg-[#7F77DD] hover:bg-[#6A62C4] text-white rounded-xl text-sm font-semibold transition">
+                    ค้นหา
+                </button>
+                {% if q_user %}
+                <a href="?tab=users&user_filter={{ user_filter }}" class="p-2 text-gray-400 hover:text-gray-600 text-sm">
+                    <i class="fas fa-times"></i> ล้าง
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Filter Badges -->
+        <div class="flex items-center gap-2 border-b border-gray-100 pb-4">
+            <span class="text-xs font-semibold text-gray-400 mr-2">ตัวกรอง:</span>
+            <a href="?tab=users&user_filter=all{% if q_user %}&q_user={{ q_user }}{% endif %}"
+                class="px-3 py-1 rounded-lg text-xs font-semibold transition {% if user_filter == 'all' %}bg-[#7F77DD] text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                ทั้งหมด
+            </a>
+            <a href="?tab=users&user_filter=active{% if q_user %}&q_user={{ q_user }}{% endif %}"
+                class="px-3 py-1 rounded-lg text-xs font-semibold transition {% if user_filter == 'active' %}bg-emerald-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                สมาชิกปกติ
+            </a>
+            <a href="?tab=users&user_filter=banned{% if q_user %}&q_user={{ q_user }}{% endif %}"
+                class="px-3 py-1 rounded-lg text-xs font-semibold transition {% if user_filter == 'banned' %}bg-[#E24B4A] text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                ถูกระงับการใช้งาน (แบน)
+            </a>
+            <a href="?tab=users&user_filter=staff{% if q_user %}&q_user={{ q_user }}{% endif %}"
+                class="px-3 py-1 rounded-lg text-xs font-semibold transition {% if user_filter == 'staff' %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                ทีมงาน (Staff)
+            </a>
+        </div>
+
+        <!-- Users Table -->
+        <div class="overflow-x-auto border border-gray-200/80 rounded-2xl">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50/80 border-b border-gray-200/80 text-xs font-bold uppercase text-gray-500">
+                        <th class="p-3.5">ผู้ใช้งาน</th>
+                        <th class="p-3.5">คะแนน & ยศ</th>
+                        <th class="p-3.5">วันที่สมัคร</th>
+                        <th class="p-3.5">สถานะบัญชี</th>
+                        <th class="p-3.5 text-right">เครื่องมือจัดการ</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                    {% for u in users_page %}
+                    <tr class="hover:bg-gray-50/70 transition">
+                        <!-- User Column -->
+                        <td class="p-3.5">
+                            <div class="flex items-center gap-3">
+                                {% if u.profile.avatar %}
+                                <img src="{{ u.profile.avatar.url }}" alt="{{ u.username }}" class="w-9 h-9 rounded-full object-cover border border-gray-200">
+                                {% else %}
+                                <div class="w-9 h-9 rounded-full bg-[#7F77DD]/10 text-[#7F77DD] flex items-center justify-center font-bold text-sm">
+                                    {{ u.username|first|upper }}
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <a href="{% url 'community:user_profile' u.username %}" target="_blank" class="font-bold text-gray-900 hover:text-[#7F77DD] hover:underline">
+                                            {{ u.username }}
+                                        </a>
+                                        {% if u.is_superuser %}
+                                        <span class="px-1.5 py-0.2 bg-red-100 text-red-600 rounded text-[10px] font-extrabold">SUPER</span>
+                                        {% elif u.is_staff %}
+                                        <span class="px-1.5 py-0.2 bg-indigo-100 text-indigo-600 rounded text-[10px] font-extrabold">STAFF</span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="text-xs text-gray-400 block">{{ u.email|default:"ไม่มีอีเมล" }}</span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Points & Rank -->
+                        <td class="p-3.5">
+                            <div class="space-y-0.5">
+                                <span class="font-bold text-[#7F77DD] text-base">{{ u.profile.points }}</span>
+                                <span class="text-xs text-gray-400">แต้ม</span>
+                                <span class="text-[11px] font-semibold text-amber-600 block">({{ u.profile.get_rank }})</span>
+                            </div>
+                        </td>
+
+                        <!-- Joined Date -->
+                        <td class="p-3.5 text-xs text-gray-500">
+                            {{ u.date_joined|date:"d M Y" }}
+                        </td>
+
+                        <!-- Status Column -->
+                        <td class="p-3.5">
+                            {% if u.ban and u.ban.is_active %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                                <i class="fas fa-ban text-[10px]"></i>
+                                <span>ถูกแบน</span>
+                                {% if u.ban.banned_until %}
+                                <span class="font-normal text-[10px]">({{ u.ban.banned_until|date:"d/m/Y" }})</span>
+                                {% else %}
+                                <span class="font-normal text-[10px]">(ถาวร)</span>
+                                {% endif %}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                                <i class="fas fa-circle-check text-[10px]"></i>
+                                <span>ปกติ</span>
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Action Buttons -->
+                        <td class="p-3.5 text-right">
+                            <div class="inline-flex items-center gap-1.5 flex-wrap justify-end">
+
+                                <!-- View Profile Button -->
+                                <a href="{% url 'community:user_profile' u.username %}" target="_blank"
+                                    class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-[#7F77DD] border border-indigo-200 rounded-lg text-xs font-semibold transition flex items-center gap-1 shadow-sm"
+                                    title="ดูโปรไฟล์ของ {{ u.username }}">
+                                    <i class="fas fa-user text-[10px]"></i>
+                                    <span>ดูโปรไฟล์</span>
+                                </a>
+
+                                <!-- Unban Button (Only when user is banned) -->
+                                {% if u.ban and u.ban.is_active %}
+                                <form method="POST" action="{% url 'community:backoffice_user_action' u.id %}" class="inline" onsubmit="return confirm('ยืนยันการปลดแบนผู้ใช้ {{ u.username }}?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="unban_user">
+                                    <button type="submit" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="ปลดแบนผู้ใช้">
+                                        <i class="fas fa-unlock text-[10px]"></i>
+                                        <span>ปลดแบน</span>
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                <!-- Reset Password -->
+                                <button onclick="openPasswordModal('{{ u.id }}', '{{ u.username }}')"
+                                    title="รีเซ็ตรหัสผ่าน" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                                    <i class="fas fa-key text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-gray-400">
+                            ไม่พบรายชื่อสมาชิกที่ตรงกับเงื่อนไขการค้นหา
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if users_page.has_other_pages %}
+        <div class="flex items-center justify-between pt-2">
+            <span class="text-xs text-gray-500">หน้า {{ users_page.number }} จาก {{ users_page.paginator.num_pages }}</span>
+            <div class="flex items-center gap-1">
+                {% if users_page.has_previous %}
+                <a href="?tab=users&page_user={{ users_page.previous_page_number }}{% if q_user %}&q_user={{ q_user }}{% endif %}&user_filter={{ user_filter }}"
+                    class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700">ก่อนหน้า</a>
+                {% endif %}
+                {% if users_page.has_next %}
+                <a href="?tab=users&page_user={{ users_page.next_page_number }}{% if q_user %}&q_user={{ q_user }}{% endif %}&user_filter={{ user_filter }}"
+                    class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700">ถัดไป</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ================================================================= -->
+    <!-- TAB 3: REPORT MODERATION -->
+    <!-- ================================================================= -->
+    {% if active_tab == 'reports' %}
+    <div class="bg-white rounded-2xl border border-[#D3D1C7]/60 shadow-sm p-6 space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h2 class="font-bold text-xl text-[#2C2C2A]">ศูนย์ตรวจสอบรายงานปัญหา (Report Moderation)</h2>
+                <p class="text-xs text-gray-500">ตรวจสอบและจัดการเนื้อหาที่ถูกแจ้งเตือนได้อย่างเด็ดขาดและปลอดภัย</p>
+            </div>
+
+            <!-- Status Filter Tabs -->
+            <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                <a href="?tab=reports&report_status=pending" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {% if report_status == 'pending' %}bg-white text-red-600 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    รอดำเนินการ ({{ pending_reports_count }})
+                </a>
+                <a href="?tab=reports&report_status=approved" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {% if report_status == 'approved' %}bg-white text-emerald-600 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    อนุมัติแล้ว
+                </a>
+                <a href="?tab=reports&report_status=rejected" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {% if report_status == 'rejected' %}bg-white text-gray-800 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    ปฏิเสธ
+                </a>
+                <a href="?tab=reports&report_status=all" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {% if report_status == 'all' %}bg-white text-[#7F77DD] shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    ทั้งหมด
+                </a>
+            </div>
+        </div>
+
+        <!-- Reports List -->
+        <div class="space-y-4">
+            {% for report in reports_page %}
+            <div class="p-5 rounded-2xl border {% if report.status == 'pending' %}border-amber-300/80 bg-amber-50/20{% elif report.status == 'approved' %}border-emerald-200 bg-emerald-50/10{% else %}border-gray-200 bg-gray-50/30{% endif %} transition space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="font-mono text-xs font-bold text-gray-400">#{{ report.id }}</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold 
+                            {% if report.status == 'pending' %}bg-amber-100 text-amber-800
+                            {% elif report.status == 'approved' %}bg-emerald-100 text-emerald-800
+                            {% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {{ report.get_status_display }}
+                        </span>
+                        <span class="px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">
+                            ข้อหา: {{ report.get_report_type_display }}
+                        </span>
+                    </div>
+                    <span class="text-xs text-gray-400">แจ้งเมื่อ {{ report.created_at|date:"d M Y H:i" }}</span>
+                </div>
+
+                <!-- Report Details Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <!-- Left: Reporter & Subject Info -->
+                    <div class="space-y-2 bg-white p-4 rounded-xl border border-gray-100">
+                        <div class="text-xs text-gray-500">
+                            <strong>ผู้รายงาน:</strong> <span class="text-gray-800 font-semibold">{{ report.reporter.username }}</span>
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            <strong>ผู้ถูกรายงาน:</strong> 
+                            {% if report.reported_user %}
+                            <a href="{% url 'community:user_profile' report.reported_user.username %}" target="_blank" class="text-red-600 font-bold hover:underline">
+                                {{ report.reported_user.username }}
+                            </a>
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </div>
+                        <div class="pt-2 border-t border-gray-100">
+                            <span class="text-xs text-gray-500 font-bold block mb-1">เหตุผลที่ระบุในการรายงาน:</span>
+                            <p class="text-xs text-gray-700 bg-gray-50 p-2.5 rounded-lg italic">
+                                "{{ report.description }}"
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Content Preview -->
+                    <div class="space-y-2 bg-white p-4 rounded-xl border border-gray-100">
+                        <span class="text-xs font-bold text-gray-700 block mb-1">
+                            <i class="fas fa-file-lines text-[#7F77DD] mr-1"></i>
+                            เนื้อหาที่เป็นเป้าหมาย:
+                        </span>
+                        {% if report.thread %}
+                            <div class="p-2.5 bg-[#EEEDFA]/30 rounded-lg text-xs space-y-1">
+                                <span class="font-bold text-gray-800 block">กระทู้: {{ report.thread.title }}</span>
+                                <p class="text-gray-600 line-clamp-2">{{ report.thread.content }}</p>
+                                <a href="{% url 'community:thread_detail' report.thread.id %}" target="_blank" class="inline-flex items-center gap-1 text-[#7F77DD] font-semibold hover:underline mt-1 text-[11px]">
+                                    <span>เปิดดูหน้ากระทู้จริง</span>
+                                    <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                                </a>
+                            </div>
+                        {% elif report.comment %}
+                            <div class="p-2.5 bg-[#EEEDFA]/30 rounded-lg text-xs space-y-1">
+                                <span class="font-bold text-gray-800 block">ความคิดเห็นในกระทู้</span>
+                                <p class="text-gray-600 line-clamp-3">"{{ report.comment.content }}"</p>
+                                {% if report.comment.thread %}
+                                <a href="{% url 'community:thread_detail' report.comment.thread.id %}" target="_blank" class="inline-flex items-center gap-1 text-[#7F77DD] font-semibold hover:underline mt-1 text-[11px]">
+                                    <span>เปิดดูกระทู้ที่คอมเมนต์อยู่</span>
+                                    <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        {% elif report.guide %}
+                            <div class="p-2.5 bg-[#EEEDFA]/30 rounded-lg text-xs space-y-1">
+                                <span class="font-bold text-gray-800 block">ไกด์เกม: {{ report.guide.title }}</span>
+                                <a href="{% url 'community:guide_detail' report.guide.id %}" target="_blank" class="inline-flex items-center gap-1 text-[#7F77DD] font-semibold hover:underline mt-1 text-[11px]">
+                                    <span>เปิดดูหน้าไกด์จริง</span>
+                                    <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                                </a>
+                            </div>
+                        {% elif report.reported_user %}
+                            <div class="p-2.5 bg-rose-50/50 border border-rose-100 rounded-lg text-xs space-y-1.5">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-user text-rose-500"></i>
+                                    <span class="font-bold text-gray-900">บัญชีผู้ใช้: {{ report.reported_user.username }}</span>
+                                    {% if report.reported_user.is_staff %}
+                                    <span class="px-1.5 py-0.2 bg-indigo-100 text-indigo-700 rounded text-[10px] font-bold">STAFF</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-gray-500">รายงานพฤติกรรมหรือโปรไฟล์ของบัญชีผู้ใช้โดยตรง</p>
+                                <a href="{% url 'community:user_profile' report.reported_user.username %}" target="_blank" class="inline-flex items-center gap-1 text-rose-600 font-semibold hover:underline text-[11px]">
+                                    <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                                    <span>เปิดดูหน้าโปรไฟล์ผู้ใช้</span>
+                                </a>
+                            </div>
+                        {% else %}
+                            <p class="text-xs text-gray-400 italic">การรายงานทั่วไปเกี่ยวกับระบบ</p>
+                        {% endif %}
+
+                        {% if report.admin_notes %}
+                        <div class="pt-2 border-t border-gray-100 text-xs text-gray-500">
+                            <strong>บันทึกเจ้าหน้าที่:</strong> {{ report.admin_notes }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Moderation Actions -->
+                {% if report.status == 'pending' %}
+                <div class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <!-- View Content Button -->
+                    {% if report.thread %}
+                    <a href="{% url 'community:thread_detail' report.thread.id %}" target="_blank" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-[#7F77DD] border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fas fa-arrow-up-right-from-square"></i>
+                        <span>เปิดดูกระทู้</span>
+                    </a>
+                    {% elif report.comment and report.comment.thread %}
+                    <a href="{% url 'community:thread_detail' report.comment.thread.id %}" target="_blank" class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fas fa-arrow-up-right-from-square"></i>
+                        <span>เปิดดูความเห็น</span>
+                    </a>
+                    {% elif report.guide %}
+                    <a href="{% url 'community:guide_detail' report.guide.id %}" target="_blank" class="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fas fa-arrow-up-right-from-square"></i>
+                        <span>เปิดดูไกด์</span>
+                    </a>
+                    {% elif report.reported_user %}
+                    <a href="{% url 'community:user_profile' report.reported_user.username %}" target="_blank" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fas fa-user"></i>
+                        <span>ดูโปรไฟล์</span>
+                    </a>
+                    {% endif %}
+
+                    {% if report.thread or report.comment or report.guide %}
+                    <!-- กรณีมีเนื้อหา (กระทู้/คอมเมนต์/ไกด์) -->
+                    <!-- 2. อนุมัติและลบเนื้อหา -->
+                    <form method="POST" action="{% url 'community:backoffice_report_action' report.id %}" onsubmit="return confirm('ยืนยันอนุมัติรายงานและลบเนื้อหานี้ทันที?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="approve_delete">
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-trash-can"></i>
+                            <span>อนุมัติ & ลบเนื้อหา</span>
+                        </button>
+                    </form>
+
+                    <!-- 3. ตักเตือนผู้ใช้ (ส่งใบเตือนที่จะแสดงเป็น pop up ให้ผู้ใช้) -->
+                    {% if report.reported_user and not report.reported_user.is_staff %}
+                    <form method="POST" action="{% url 'community:backoffice_report_action' report.id %}" onsubmit="return confirm('ยืนยันอนุมัติรายงานและส่งหนังสือตักเตือนไปยัง {{ report.reported_user.username }} ด้วยเหตุที่รายงานมา ');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="approve_warn">
+                        <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm" title="ส่งหนังสือตักเตือน ">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <span>ตักเตือนผู้ใช้</span>
+                        </button>
+                    </form>
+
+                    <!-- 4. แบนผู้ใช้ (กำหนดวัน หรือถาวร) -->
+                    <button type="button" onclick="openReportBanModal('{{ report.id }}', '{{ report.reported_user.username|escapejs }}', '{{ report.get_report_type_display|escapejs }}: {{ report.description|escapejs }}', true)"
+                        class="px-4 py-2 bg-[#E24B4A] hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fas fa-user-slash"></i>
+                        <span>แบนผู้ใช้</span>
+                    </button>
+                    {% endif %}
+
+                    {% else %}
+                    <!-- กรณีรายงานบัญชีผู้ใช้โดยตรง (ไม่มีเนื้อหาให้ลบ) -->
+                    {% if report.reported_user and not report.reported_user.is_staff %}
+                    <!-- 3. ตักเตือนผู้ใช้ -->
+                    <form method="POST" action="{% url 'community:backoffice_report_action' report.id %}" onsubmit="return confirm('ยืนยันอนุมัติรายงานและส่งข้อความตักเตือนไปยัง {{ report.reported_user.username }} ด้วยเหตุที่รายงานมา?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="approve_warn">
+                        <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <span>ตักเตือนผู้ใช้</span>
+                        </button>
+                    </form>
+
+                    <!-- 4. แบนผู้ใช้ (กำหนดวัน หรือถาวร) -->
+                    <button type="button" onclick="openReportBanModal('{{ report.id }}', '{{ report.reported_user.username|escapejs }}', '{{ report.get_report_type_display|escapejs }}: {{ report.description|escapejs }}', false)"
+                        class="px-4 py-2 bg-[#E24B4A] hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fas fa-user-slash"></i>
+                        <span>แบนผู้ใช้</span>
+                    </button>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- Reject / Dismiss -->
+                    <form method="POST" action="{% url 'community:backoffice_report_action' report.id %}" onsubmit="return confirm('ปฏิเสธรายงานนี้ (ตรวจแล้วไม่ผิดกฎ)?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reject">
+                        <button type="submit" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                            <i class="fas fa-xmark"></i>
+                            <span>ปฏิเสธรายงาน</span>
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-circle-check text-4xl text-emerald-500 mb-3 block"></i>
+                <p class="text-base font-semibold text-gray-700">ไม่มีรายการรายงานในสถานะนี้</p>
+                <p class="text-xs text-gray-400 mt-1">ทุกอย่างเรียบร้อยดี</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if reports_page.has_other_pages %}
+        <div class="flex items-center justify-between pt-4">
+            <span class="text-xs text-gray-500">หน้า {{ reports_page.number }} จาก {{ reports_page.paginator.num_pages }}</span>
+            <div class="flex items-center gap-1">
+                {% if reports_page.has_previous %}
+                <a href="?tab=reports&page_report={{ reports_page.previous_page_number }}&report_status={{ report_status }}"
+                    class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700">ก่อนหน้า</a>
+                {% endif %}
+                {% if reports_page.has_next %}
+                <a href="?tab=reports&page_report={{ reports_page.next_page_number }}&report_status={{ report_status }}"
+                    class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700">ถัดไป</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ================================================================= -->
+    <!-- TAB 4: GAME MANAGEMENT -->
+    <!-- ================================================================= -->
+    {% if active_tab == 'games' %}
+    <div class="bg-white rounded-2xl border border-[#D3D1C7]/60 shadow-sm p-6 space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h2 class="font-bold text-xl text-[#2C2C2A]">การจัดการเกมในระบบ (Game Management)</h2>
+                <p class="text-xs text-gray-500">เพิ่มเกมใหม่ แก้ไขรายละเอียด อัปเดตรูปภาพ หรือลบเกมได้ง่ายๆ ผ่านหน้าเว็บ</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <form method="GET" class="flex items-center gap-2">
+                    <input type="hidden" name="tab" value="games">
+                    <input type="text" name="q_game" value="{{ q_game }}" placeholder="ค้นหาชื่อเกมหรือแนวเกม..."
+                        class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#7F77DD]/50 outline-none w-52">
+                    <button type="submit" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-semibold text-gray-700">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+                <button onclick="openModal('addGameModal')" class="px-4 py-2 bg-[#7F77DD] hover:bg-[#6A62C4] text-white rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-sm">
+                    <i class="fas fa-plus"></i>
+                    <span>เพิ่มเกมใหม่</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Games Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for game in games %}
+            <div class="bg-gray-50/60 rounded-2xl border border-gray-200/80 overflow-hidden hover:border-[#7F77DD]/50 transition flex flex-col justify-between group">
+                <div>
+                    <!-- Game Cover Image -->
+                    <div class="relative h-44 bg-gray-800 overflow-hidden">
+                        {% if game.cover_image %}
+                        <img src="{{ game.cover_image.url }}" alt="{{ game.name }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        {% else %}
+                        <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-700">
+                            <i class="fas fa-gamepad text-4xl mb-1"></i>
+                            <span class="text-xs">ไม่มีรูปหน้าปก</span>
+                        </div>
+                        {% endif %}
+                        <div class="absolute top-3 left-3 bg-[#2C2C2A]/80 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-bold">
+                            {{ game.genre }}
+                        </div>
+                    </div>
+
+                    <!-- Game Details -->
+                    <div class="p-4 space-y-2">
+                        <h3 class="font-bold text-gray-900 text-base">{{ game.name }}</h3>
+                        <p class="text-xs text-gray-500 line-clamp-2">{{ game.description|default:"ไม่มีคำอธิบาย" }}</p>
+
+                        <!-- Stats Pill -->
+                        <div class="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t border-gray-200/60">
+                            <span title="กระทู้"><i class="fas fa-comments text-[#7F77DD] mr-1"></i>{{ game.threads_count }} กระทู้</span>
+                            <span title="ไกด์"><i class="fas fa-book text-emerald-600 mr-1"></i>{{ game.guides_count }} ไกด์</span>
+                            <span title="ถูกใจ"><i class="fas fa-heart text-red-500 mr-1"></i>{{ game.likes_count }} ไลก์</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="p-4 pt-0 flex items-center justify-between gap-2">
+                    <a href="{% url 'community:game_detail' game.id %}" target="_blank" class="text-xs text-[#7F77DD] font-semibold hover:underline flex items-center gap-1">
+                        <span>เปิดดูหน้าเกม</span>
+                        <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                    </a>
+
+                    <div class="flex items-center gap-2">
+                        <!-- Edit Button -->
+                        <button onclick="openEditGameModal('{{ game.id }}', '{{ game.name|escapejs }}', '{{ game.recommended_age|default:"3+"|escapejs }}', '{{ game.description|escapejs }}')"
+                            class="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                            <i class="fas fa-pen-to-square text-[10px]"></i>
+                            <span>แก้ไข</span>
+                        </button>
+
+                        <!-- Delete Button -->
+                        <form method="POST" action="{% url 'community:backoffice_game_delete' game.id %}" onsubmit="return confirm('ยืนยันลบเกม {{ game.name|escapejs }} ออกจากระบบ? (กระทู้ที่สังกัดเกมจะยังคงอยู่)');">
+                            {% csrf_token %}
+                            <button type="submit" class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" title="ลบเกม">
+                                <i class="fas fa-trash-can text-xs"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-3 text-center py-12 text-gray-400">
+                <i class="fas fa-gamepad text-4xl mb-2 block"></i>
+                <p class="text-sm">ไม่พบรายชื่อเกมในระบบ</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ================================================================= -->
+<!-- MODALS -->
+<!-- ================================================================= -->
+
+<!-- 1. Add Game Modal -->
+<div id="addGameModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 transform transition-all">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+            <h3 class="font-bold text-lg text-gray-900 flex items-center gap-2">
+                <i class="fas fa-gamepad text-[#7F77DD]"></i>
+                <span>เพิ่มเกมใหม่เข้าสู่ระบบ</span>
+            </h3>
+            <button onclick="closeModal('addGameModal')" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'community:backoffice_game_create' %}" enctype="multipart/form-data" class="space-y-4 pt-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">ชื่อเกม *</label>
+                {{ game_form.name }}
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">อายุที่แนะนำ (Recommended Age) *</label>
+                {{ game_form.recommended_age }}
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">คำอธิบาย</label>
+                {{ game_form.description }}
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">รูปหน้าปกเกม (Cover Image)</label>
+                {{ game_form.cover_image }}
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+                <button type="button" onclick="closeModal('addGameModal')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition">
+                    ยกเลิก
+                </button>
+                <button type="submit" class="px-5 py-2 bg-[#7F77DD] hover:bg-[#6A62C4] text-white font-bold rounded-xl text-sm transition shadow-md">
+                    บันทึกเกม
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. Edit Game Modal -->
+<div id="editGameModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+            <h3 class="font-bold text-lg text-gray-900 flex items-center gap-2">
+                <i class="fas fa-pen-to-square text-[#7F77DD]"></i>
+                <span>แก้ไขข้อมูลเกม</span>
+            </h3>
+            <button onclick="closeModal('editGameModal')" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="editGameForm" method="POST" enctype="multipart/form-data" class="space-y-4 pt-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">ชื่อเกม *</label>
+                <input type="text" id="editGameName" name="name" required class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-[#7F77DD]/50 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">อายุที่แนะนำ (Recommended Age) *</label>
+                <select id="editGameAge" name="recommended_age" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-[#7F77DD]/50 outline-none bg-white font-medium text-gray-800">
+                    <option value="3+">3+ : สำหรับทุกวัย</option>
+                    <option value="7+">7+ : อายุ 7 ปีขึ้นไป</option>
+                    <option value="12+">12+ : อายุ 12 ปีขึ้นไป</option>
+                    <option value="13+">13+ : วัยรุ่น 13 ปีขึ้นไป</option>
+                    <option value="16+">16+ : อายุ 16 ปีขึ้นไป</option>
+                    <option value="18+">18+ : ผู้ใหญ่ 18 ปีขึ้นไป</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">คำอธิบาย</label>
+                <textarea id="editGameDescription" name="description" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-[#7F77DD]/50 outline-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">เปลี่ยนรูปหน้าปก (เลือกใหม่หากต้องการเปลี่ยน)</label>
+                <input type="file" name="cover_image" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-[#7F77DD]">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+                <button type="button" onclick="closeModal('editGameModal')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition">
+                    ยกเลิก
+                </button>
+                <button type="submit" class="px-5 py-2 bg-[#7F77DD] hover:bg-[#6A62C4] text-white font-bold rounded-xl text-sm transition shadow-md">
+                    บันทึกการแก้ไข
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+
+
+<!-- 6. Reset Password Modal -->
+<div id="passwordModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+            <h3 class="font-bold text-lg text-gray-900 flex items-center gap-2">
+                <i class="fas fa-key text-gray-700"></i>
+                <span>ตั้งรหัสผ่านใหม่: <span id="pwUsername" class="text-[#7F77DD]"></span></span>
+            </h3>
+            <button onclick="closeModal('passwordModal')" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="passwordForm" method="POST" class="space-y-4 pt-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reset_password">
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">รหัสผ่านใหม่ *</label>
+                <input type="password" name="new_password" required minlength="6" placeholder="อย่างน้อย 6 ตัวอักษร"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-[#7F77DD]/50 outline-none">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+                <button type="button" onclick="closeModal('passwordModal')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition">
+                    ยกเลิก
+                </button>
+                <button type="submit" class="px-5 py-2 bg-gray-900 hover:bg-black text-white font-bold rounded-xl text-sm transition shadow-md">
+                    บันทึกรหัสผ่านใหม่
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 6. Report Ban Modal (For Reports with Duration Options) -->
+<div id="reportBanModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 transform transition-all">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+            <h3 class="font-bold text-lg text-gray-900 flex items-center gap-2">
+                <i class="fas fa-user-slash text-[#E24B4A]"></i>
+                <span>ระงับการใช้งาน (แบน): <span id="reportBanUsername" class="text-[#E24B4A]"></span></span>
+            </h3>
+            <button onclick="closeModal('reportBanModal')" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="reportBanForm" method="POST" class="space-y-4 pt-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="approve_ban">
+
+            <div id="reportBanContentNotice" class="p-3 bg-red-50 text-red-700 rounded-xl text-xs flex items-center gap-2">
+                <i class="fas fa-trash-can"></i>
+                <span>ระบบจะทำการลบเนื้อหาที่ถูกรายงาน และระงับสิทธิการใช้งานบัญชีนี้</span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">ระยะเวลาการแบน *</label>
+                <select name="duration" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/50 outline-none bg-white font-medium text-gray-800">
+                    <option value="1d">1 วัน</option>
+                    <option value="3d">3 วัน</option>
+                    <option value="7d">7 วัน (1 สัปดาห์)</option>
+                    <option value="30d">30 วัน (1 เดือน)</option>
+                    <option value="permanent" selected>ถาวร (Permanent)</option>
+                </select>
+                <span class="text-[11px] text-gray-400 mt-1 block">กรณีแบนกำหนดวัน ระบบจะแจ้งเวลาคงเหลือให้ผู้ใช้ทราบบนหน้าเข้าสู่ระบบ</span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">เหตุผลในการระงับการใช้งาน *</label>
+                <textarea id="reportBanReason" name="reason" required rows="3" placeholder="ระบุเหตุผลในการแบนผู้ใช้"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/50 outline-none"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+                <button type="button" onclick="closeModal('reportBanModal')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition">
+                    ยกเลิก
+                </button>
+                <button type="submit" class="px-5 py-2 bg-[#E24B4A] hover:bg-red-700 text-white font-bold rounded-xl text-sm transition shadow-md">
+                    ยืนยันการแบน
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- JavaScript for Modal Interactivity -->
+<script>
+function openModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
+function openBanModal(userId, username) {
+    document.getElementById('banUsername').textContent = username;
+    document.getElementById('banForm').action = "/backoffice/user/" + userId + "/action/";
+    openModal('banModal');
+}
+
+function openReportBanModal(reportId, username, defaultReason, hasContent) {
+    document.getElementById('reportBanUsername').textContent = username;
+    document.getElementById('reportBanReason').value = defaultReason || '';
+    document.getElementById('reportBanForm').action = "/backoffice/report/" + reportId + "/action/";
+    var notice = document.getElementById('reportBanContentNotice');
+    if (notice) {
+        notice.style.display = hasContent ? 'flex' : 'none';
+    }
+    openModal('reportBanModal');
+}
+
+function openPasswordModal(userId, username) {
+    document.getElementById('pwUsername').textContent = username;
+    document.getElementById('passwordForm').action = "/backoffice/user/" + userId + "/action/";
+    openModal('passwordModal');
+}
+
+function openEditGameModal(gameId, name, age, desc) {
+    document.getElementById('editGameName').value = name;
+    if (document.getElementById('editGameAge')) {
+        document.getElementById('editGameAge').value = age || '3+';
+    }
+    document.getElementById('editGameDescription').value = desc;
+    document.getElementById('editGameForm').action = "/backoffice/game/" + gameId + "/edit/";
+    openModal('editGameModal');
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    ['addGameModal', 'editGameModal', 'reportBanModal', 'passwordModal'].forEach(function(id) {
+        var modal = document.getElementById(id);
+        if (event.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+}
+</script>
+{% endblock %}

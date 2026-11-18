@@ -1,0 +1,627 @@
+{% extends 'base.html' %}
+
+{% block title %}กระทู้ - {{ thread.title }} | GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Main Content -->
+        <div class="w-full lg:w-2/3 xl:w-3/4">
+            <!-- Thread Detail -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                <!-- Body -->
+                <div class="p-6 md:p-8">
+                    <!-- Author Info -->
+                    <div class="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
+                        <div class="flex items-center">
+                            {% if thread.author.profile.avatar %}
+                            <img src="{{ thread.author.profile.avatar.url }}" alt="{{ thread.author.username }}"
+                                class="w-12 h-12 rounded-full object-cover mr-4 border-2 border-gray-100">
+                            {% else %}
+                            <div
+                                class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mr-4 text-gray-500">
+                                <i class="fas fa-user text-xl"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div class="font-bold text-gray-800 text-lg">{{ thread.author.username }}</div>
+                                <div class="text-gray-500 text-sm">{{ thread.created_at|date:'d M Y H:i' }}</div>
+                            </div>
+                        </div>
+                        {% if user == thread.author or user.is_staff %}
+                        <div class="flex items-center space-x-2">
+                            <a href="{% url 'community:edit_thread' thread.id %}"
+                                class="bg-yellow-400 hover:bg-yellow-500 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm"
+                                title="แก้ไข">
+                                <i class="fas fa-edit text-sm"></i>
+                            </a>
+                            <a href="{% url 'community:delete_thread' thread.id %}"
+                                class="bg-red-500 hover:bg-red-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm"
+                                title="ลบ" onclick="return confirm('คุณแน่ใจหรือ?')">
+                                <i class="fas fa-trash text-sm"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Content -->
+                    <div class="prose max-w-none text-gray-700 leading-relaxed mb-8">
+                        {{ thread.content|linebreaks }}
+                    </div>
+
+                    {% if thread.image %}
+                    <div class="mb-8 rounded-xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer group relative bg-gray-900/5"
+                        onclick="openImageModal('{{ thread.image.url }}')" title="คลิกเพื่อดูรูปขนาดเต็ม">
+                        <img src="{{ thread.image.url }}"
+                            class="w-full h-auto max-h-[600px] object-contain bg-gray-50 transition-transform duration-300 group-hover:scale-[1.01]"
+                            alt="{{ thread.title }}">
+                        <div
+                            class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-medium gap-2 backdrop-blur-[2px]">
+                            <i class="fas fa-search-plus text-2xl"></i>
+                            <span class="text-sm font-semibold">คลิกเพื่อขยายดูรูปภาพเต็มหน้าจอ</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if thread.video %}
+                    <div class="mb-8 rounded-lg overflow-hidden shadow-sm aspect-video bg-black">
+                        <video controls class="w-full h-full">
+                            <source src="{{ thread.video.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    {% endif %}
+
+
+
+                    <!-- Actions -->
+                    <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+                        <div class="relative reaction-wrapper inline-block" onmouseenter="openReactionPopup(this)"
+                            onmouseleave="closeReactionPopup(this)">
+                            {% if user.is_authenticated %}
+                            <!-- Floating Reaction Bar on Hover -->
+                            <div
+                                class="reaction-bar absolute bottom-full mb-2 left-0 hidden opacity-0 pointer-events-none items-center gap-1.5 bg-white shadow-xl border border-[#D3D1C7] px-3 py-1.5 rounded-full z-30 transition-all duration-300 backdrop-blur-sm">
+                                <button type="button"
+                                    onclick="event.stopPropagation(); likeDetail('thread', {{ thread.id }}, 'like', this)"
+                                    title="ถูกใจ"
+                                    class="text-lg hover:scale-125 hover:-translate-y-1 transition-transform p-1 rounded-full hover:bg-[#EEEDFA]">
+                                    ❤️
+                                </button>
+                                <button type="button"
+                                    onclick="event.stopPropagation(); likeDetail('thread', {{ thread.id }}, 'laugh', this)"
+                                    title="ขำ"
+                                    class="text-lg hover:scale-125 hover:-translate-y-1 transition-transform p-1 rounded-full hover:bg-[#FEF5E8]">
+                                    😆
+                                </button>
+                                <button type="button"
+                                    onclick="event.stopPropagation(); likeDetail('thread', {{ thread.id }}, 'sad', this)"
+                                    title="เศร้า"
+                                    class="text-lg hover:scale-125 hover:-translate-y-1 transition-transform p-1 rounded-full hover:bg-[#EEEDFA]">
+                                    😢
+                                </button>
+                                <button type="button"
+                                    onclick="event.stopPropagation(); likeDetail('thread', {{ thread.id }}, 'angry', this)"
+                                    title="โกรธ"
+                                    class="text-lg hover:scale-125 hover:-translate-y-1 transition-transform p-1 rounded-full hover:bg-[#FCEBEB]">
+                                    😡
+                                </button>
+                            </div>
+
+                            <button type="button"
+                                onclick="event.stopPropagation(); likeDetail('thread', {{ thread.id }}, 'like', this)"
+                                class="detail-reaction-btn flex items-center px-4 py-2 rounded-xl border font-medium text-sm transition shadow-sm {% if thread.user_reaction %}border-[#E24B4A]/30 bg-[#FCEBEB] text-[#E24B4A]{% else %}border-[#D3D1C7] text-[#5F5E5A] hover:bg-[#F1EFE8]/50{% endif %}">
+                                <span class="detail-reaction-icon mr-2 text-base">
+                                    {% if thread.user_reaction == 'laugh' %}😆
+                                    {% elif thread.user_reaction == 'sad' %}😢
+                                    {% elif thread.user_reaction == 'angry' %}😡
+                                    {% elif thread.user_reaction == 'like' %}❤️
+                                    {% else %}<i class="far fa-heart"></i>
+                                    {% endif %}
+                                </span>
+                                <span class="like-count">{{ thread.get_like_count }}</span> <span
+                                    class="ml-1">ถูกใจ</span>
+                            </button>
+                            {% else %}
+                            <a href="{% url 'community:login' %}?next={{ request.path }}"
+                                class="flex items-center px-4 py-2 rounded-xl border border-[#D3D1C7] text-[#5F5E5A] hover:bg-[#F1EFE8]/50 transition font-medium text-sm">
+                                <i class="far fa-heart mr-2"></i> {{ thread.get_like_count }} ถูกใจ
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        <a href="#comments"
+                            class="flex items-center px-4 py-2 rounded-lg border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition font-medium text-sm">
+                            <i class="fas fa-comments mr-2"></i> {{ thread.comments.count }} ความเห็น
+                        </a>
+                        <button type="button" onclick="shareContent('{{ thread.title|escapejs }}')"
+                            class="ml-auto text-gray-400 hover:text-green-600 transition p-2 rounded-full hover:bg-gray-100 flex items-center gap-1.5 text-sm font-medium"
+                            title="แชร์กระทู้นี้">
+                            <i class="fas fa-share-alt text-base"></i>
+                            <span class="hidden sm:inline">แชร์</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div id="comments" class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="bg-gray-50 border-b border-gray-100 p-4 px-6">
+                    <h5 class="font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-comments mr-2 text-primary"></i> ความเห็น ({{ comments.count }})
+                    </h5>
+                </div>
+
+                <div class="p-6">
+                    <!-- Comment Form -->
+                    {% if user.is_authenticated %}
+                    <div class="mb-8 flex gap-4">
+                        {% if user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}"
+                            class="w-10 h-10 rounded-full object-cover flex-shrink-0" alt="Avatar">
+                        {% else %}
+                        <div
+                            class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 text-gray-500">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        {% endif %}
+                        <form method="POST" action="{% url 'community:add_comment' thread.id %}" class="flex-grow">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <textarea
+                                    class="w-full border border-gray-300 rounded-xl p-4 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition resize-none bg-gray-50 focus:bg-white"
+                                    name="content" rows="3" placeholder="แสดงความคิดเห็นของคุณ..." required></textarea>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit"
+                                    class="bg-primary hover:bg-opacity-90 text-white font-bold py-2 px-6 rounded-lg transition shadow-sm flex items-center text-sm">
+                                    <i class="fas fa-paper-plane mr-2"></i> ส่งความเห็น
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="bg-gray-50 rounded-lg p-6 text-center border border-gray-100 mb-8">
+                        <p class="text-gray-600 mb-3">เข้าสู่ระบบเพื่อร่วมแสดงความคิดเห็น</p>
+                        <a href="{% url 'community:login' %}"
+                            class="inline-block bg-primary text-white px-6 py-2 rounded-lg hover:bg-opacity-90 transition font-medium text-sm">เข้าสู่ระบบ</a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Comments List -->
+                    {% if comments %}
+                    <div class="space-y-6">
+                        {% for comment in comments %}
+                        <div class="group">
+                            <div class="flex gap-4">
+                                <div class="flex-shrink-0">
+                                    {% if comment.author.profile.avatar %}
+                                    <img src="{{ comment.author.profile.avatar.url }}"
+                                        alt="{{ comment.author.username }}"
+                                        class="w-10 h-10 rounded-full object-cover border border-gray-100">
+                                    {% else %}
+                                    <div
+                                        class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow">
+                                    <div
+                                        class="bg-gray-50 rounded-2xl rounded-tl-none p-4 relative group-hover:bg-gray-100 transition">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div>
+                                                <span class="font-bold text-gray-900 text-sm mr-2">
+                                                    {{ comment.author.username }}
+                                                </span>
+                                                <span class="text-xs text-gray-500">{{ comment.created_at|timesince }}
+                                                    ที่แล้ว</span>
+                                            </div>
+                                            {% if user == comment.author or user.is_staff %}
+                                            <a href="{% url 'community:delete_comment' comment.id %}"
+                                                class="text-gray-400 hover:text-red-500 transition px-2"
+                                                onclick="return confirm('ลบความเห็นนี้?')" title="ลบ">
+                                                <i class="fas fa-trash text-xs"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                        <p class="text-gray-700 text-sm leading-relaxed">{{ comment.content }}</p>
+                                    </div>
+
+                                    <!-- Comment Reaction Actions -->
+                                    <div class="flex items-center gap-4 mt-1.5 ml-1 text-xs text-gray-500 font-medium">
+                                        {% if user.is_authenticated %}
+                                        <div class="relative reaction-wrapper inline-block"
+                                            onmouseenter="openReactionPopup(this)"
+                                            onmouseleave="closeReactionPopup(this)">
+                                            <!-- Floating Reaction Bar on Hover -->
+                                            <div
+                                                class="reaction-bar absolute bottom-full mb-1 left-0 hidden opacity-0 items-center gap-1 bg-white shadow-lg border border-[#D3D1C7] px-2.5 py-1 rounded-full z-40 transition-all duration-300 backdrop-blur-sm">
+                                                <button type="button"
+                                                    onclick="event.stopPropagation(); event.preventDefault(); likeComment({{ comment.id }}, 'like', this)"
+                                                    title="ถูกใจ"
+                                                    class="text-base hover:scale-125 hover:-translate-y-0.5 transition-transform p-0.5 rounded-full hover:bg-[#EEEDFA] relative z-50 pointer-events-auto cursor-pointer">❤️</button>
+                                                <button type="button"
+                                                    onclick="event.stopPropagation(); event.preventDefault(); likeComment({{ comment.id }}, 'laugh', this)"
+                                                    title="ขำ"
+                                                    class="text-base hover:scale-125 hover:-translate-y-0.5 transition-transform p-0.5 rounded-full hover:bg-[#FEF5E8] relative z-50 pointer-events-auto cursor-pointer">😆</button>
+                                                <button type="button"
+                                                    onclick="event.stopPropagation(); event.preventDefault(); likeComment({{ comment.id }}, 'sad', this)"
+                                                    title="เศร้า"
+                                                    class="text-base hover:scale-125 hover:-translate-y-0.5 transition-transform p-0.5 rounded-full hover:bg-[#EEEDFA] relative z-50 pointer-events-auto cursor-pointer">😢</button>
+                                                <button type="button"
+                                                    onclick="event.stopPropagation(); event.preventDefault(); likeComment({{ comment.id }}, 'angry', this)"
+                                                    title="โกรธ"
+                                                    class="text-base hover:scale-125 hover:-translate-y-0.5 transition-transform p-0.5 rounded-full hover:bg-[#FCEBEB] relative z-50 pointer-events-auto cursor-pointer">😡</button>
+                                            </div>
+
+                                            <button type="button"
+                                                onclick="event.stopPropagation(); likeComment({{ comment.id }}, 'like', this)"
+                                                class="comment-reaction-btn flex items-center space-x-1 hover:text-[#E24B4A] transition font-semibold {% if comment.user_reaction %}text-[#E24B4A]{% else %}text-gray-500{% endif %}">
+                                                <span class="comment-reaction-icon text-sm">
+                                                    {% if comment.user_reaction == 'laugh' %}😆
+                                                    {% elif comment.user_reaction == 'sad' %}😢
+                                                    {% elif comment.user_reaction == 'angry' %}😡
+                                                    {% elif comment.user_reaction == 'like' %}❤️
+                                                    {% else %}<i class="far fa-heart"></i>
+                                                    {% endif %}
+                                                </span>
+                                                <span class="like-count ml-1">{{ comment.get_like_count }}</span>
+                                                <span>ถูกใจ</span>
+                                            </button>
+                                        </div>
+                                        {% else %}
+                                        <a href="{% url 'community:login' %}?next={{ request.path }}"
+                                            class="flex items-center space-x-1 hover:text-[#E24B4A] transition font-semibold text-gray-500">
+                                            <i class="far fa-heart text-sm mr-1"></i>
+                                            <span>{{ comment.get_like_count }} ถูกใจ</span>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="py-10 text-center text-gray-400">
+                        <i class="far fa-comments text-4xl mb-3 opacity-50"></i>
+                        <p>ยังไม่มีความคิดเห็น เป็นคนแรกที่เริ่มพูดคุย!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Right -->
+        <div class="w-full lg:w-1/3 xl:w-1/4 space-y-6">
+            <!-- Author Info -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="bg-gradient-to-r from-green-500 to-teal-500 text-white p-4">
+                    <h6 class="font-bold flex items-center"><i class="fas fa-user mr-2"></i> ผู้เขียน</h6>
+                </div>
+                <div class="p-6 text-center">
+                    {% if thread.author.profile.avatar %}
+                    <img src="{{ thread.author.profile.avatar.url }}" alt="{{ thread.author.username }}"
+                        class="w-20 h-20 rounded-full mx-auto mb-3 object-cover border-4 border-white shadow-md">
+                    {% else %}
+                    <div
+                        class="w-20 h-20 rounded-full bg-gray-200 mx-auto mb-3 flex items-center justify-center text-gray-400 shadow-inner">
+                        <i class="fas fa-user text-3xl"></i>
+                    </div>
+                    {% endif %}
+                    <h6 class="font-bold text-lg text-gray-800">{{ thread.author.username }}</h6>
+                    <div
+                        class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium mb-4">
+                        <i class="fas fa-star text-yellow-500 mr-1"></i> {{ thread.author.profile.points }} คะแนน
+                    </div>
+                    <a href="{% url 'community:user_profile' thread.author.username %}"
+                        class="block w-full border border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition font-bold py-2 px-4 rounded-lg text-sm">
+                        ดูโปรไฟล์
+                    </a>
+                </div>
+            </div>
+
+            <!-- Report -->
+            {% if user.is_authenticated and user != thread.author %}
+            <div class="bg-white rounded-xl shadow-md p-4">
+                <a href="{% url 'community:report_thread' thread.id %}"
+                    class="block w-full text-center text-gray-400 hover:text-red-500 transition text-sm py-2">
+                    <i class="fas fa-flag mr-1"></i> รายงานกระทู้นี้
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function openReactionPopup(container) {
+        if (container._reactionHideTimer) {
+            clearTimeout(container._reactionHideTimer);
+            container._reactionHideTimer = null;
+        }
+        const bar = container.querySelector('.reaction-bar');
+        if (bar) {
+            bar.style.display = 'flex';
+            bar.style.opacity = '1';
+            bar.style.pointerEvents = 'auto';
+            bar.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            bar.classList.add('flex', 'opacity-100');
+        }
+    }
+
+    function closeReactionPopup(container) {
+        container._reactionHideTimer = setTimeout(() => {
+            const bar = container.querySelector('.reaction-bar');
+            if (bar) {
+                bar.style.opacity = '0';
+                bar.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    if (bar.style.opacity === '0') {
+                        bar.style.display = 'none';
+                        bar.classList.remove('flex');
+                        bar.classList.add('hidden');
+                    }
+                }, 300);
+            }
+        }, 500);
+    }
+
+    function getCsrfToken() {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === 'csrftoken=') {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        if (!cookieValue) {
+            const el = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (el) cookieValue = el.value;
+        }
+        return cookieValue || '{{ csrf_token }}';
+    }
+
+    function likeDetail(type, id, reactionType, element) {
+        const token = getCsrfToken();
+        const url = type === 'thread' ? `/thread/${id}/react/` : `/guide/${id}/react/`;
+        const formData = new FormData();
+        formData.append('reaction_type', reactionType || 'like');
+        formData.append('csrfmiddlewaretoken', token);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': token
+            },
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                const targetEl = element.closest ? element : (element.parentElement || element);
+                const wrapper = targetEl ? targetEl.closest('.reaction-wrapper') : null;
+                if (!wrapper) return;
+
+                const bar = wrapper.querySelector('.reaction-bar');
+                if (bar) {
+                    bar.style.opacity = '0';
+                    bar.style.pointerEvents = 'none';
+                    bar.style.display = 'none';
+                }
+
+                const iconContainer = wrapper.querySelector('.detail-reaction-icon');
+                const countSpan = wrapper.querySelector('.like-count');
+                const mainBtn = wrapper.querySelector('.detail-reaction-btn');
+
+                if (countSpan) countSpan.textContent = data.likes;
+
+                if (data.user_reaction) {
+                    const emojis = { 'like': '❤️', 'laugh': '😆', 'sad': '😢', 'angry': '😡' };
+                    if (iconContainer) iconContainer.innerHTML = emojis[data.user_reaction] || '❤️';
+                    if (mainBtn) {
+                        mainBtn.className = 'detail-reaction-btn flex items-center px-4 py-2 rounded-xl border font-medium text-sm transition shadow-sm border-[#E24B4A]/30 bg-[#FCEBEB] text-[#E24B4A]';
+                    }
+                } else {
+                    if (iconContainer) iconContainer.innerHTML = '<i class="far fa-heart"></i>';
+                    if (mainBtn) {
+                        mainBtn.className = 'detail-reaction-btn flex items-center px-4 py-2 rounded-xl border font-medium text-sm transition shadow-sm border-[#D3D1C7] text-[#5F5E5A] hover:bg-[#F1EFE8]/50';
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Reaction detail error:', err);
+            });
+    }
+
+    function likeComment(commentId, reactionType, element) {
+        const token = getCsrfToken();
+        const url = `/comment/${commentId}/react/`;
+        const formData = new FormData();
+        formData.append('reaction_type', reactionType || 'like');
+        formData.append('csrfmiddlewaretoken', token);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': token
+            },
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                const targetEl = element.closest ? element : (element.parentElement || element);
+                const wrapper = targetEl ? targetEl.closest('.reaction-wrapper') : null;
+                if (!wrapper) return;
+
+                const bar = wrapper.querySelector('.reaction-bar');
+                if (bar) {
+                    bar.style.opacity = '0';
+                    bar.style.pointerEvents = 'none';
+                    bar.style.display = 'none';
+                }
+
+                const iconContainer = wrapper.querySelector('.comment-reaction-icon');
+                const countSpan = wrapper.querySelector('.like-count');
+                const mainBtn = wrapper.querySelector('.comment-reaction-btn');
+
+                if (countSpan) countSpan.textContent = data.likes;
+
+                if (data.user_reaction) {
+                    const emojis = { 'like': '❤️', 'laugh': '😆', 'sad': '😢', 'angry': '😡' };
+                    if (iconContainer) iconContainer.innerHTML = emojis[data.user_reaction] || '❤️';
+                    if (mainBtn) {
+                        mainBtn.classList.remove('text-gray-500');
+                        mainBtn.classList.add('text-[#E24B4A]');
+                    }
+                } else {
+                    if (iconContainer) iconContainer.innerHTML = '<i class="far fa-heart"></i>';
+                    if (mainBtn) {
+                        mainBtn.classList.remove('text-[#E24B4A]');
+                        mainBtn.classList.add('text-gray-500');
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Comment reaction error:', err);
+            });
+    }
+
+    function shareContent(title, url) {
+        const shareUrl = url || window.location.href;
+        const shareTitle = title || document.title;
+        if (navigator.share) {
+            navigator.share({
+                title: shareTitle,
+                url: shareUrl
+            }).catch(err => {
+                if (err.name !== 'AbortError') {
+                    copyToClipboard(shareUrl);
+                }
+            });
+        } else {
+            copyToClipboard(shareUrl);
+        }
+    }
+
+    function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('คัดลอกลิงก์เรียบร้อยแล้ว!');
+            }).catch(() => {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    function fallbackCopy(text) {
+        const input = document.createElement('textarea');
+        input.value = text;
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.focus();
+        input.select();
+        try {
+            document.execCommand('copy');
+            showToast('คัดลอกลิงก์เรียบร้อยแล้ว!');
+        } catch (e) {
+            showToast('ไม่สามารถคัดลอกลิงก์ได้');
+        }
+        document.body.removeChild(input);
+    }
+
+    function showToast(message) {
+        let toast = document.getElementById('shareToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'shareToast';
+            toast.className = 'fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-2 transition-all duration-300 transform translate-y-10 opacity-0';
+            toast.innerHTML = `<i class="fas fa-check-circle text-green-400 text-lg"></i><span id="toastMsg" class="text-sm font-medium"></span>`;
+            document.body.appendChild(toast);
+        }
+        document.getElementById('toastMsg').innerText = message;
+        toast.classList.remove('translate-y-10', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-10', 'opacity-0');
+        }, 2500);
+    }
+
+    // Real-time Thread Status Polling (Every 3 seconds)
+    function checkThreadStatus() {
+        fetch("{% url 'community:get_thread_updates' thread.id %}")
+            .then(response => {
+                if (response.status === 404) {
+                    window.location.href = "{% url 'community:home' %}";
+                    return null;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.deleted) {
+                    window.location.href = data.redirect_url || "{% url 'community:home' %}";
+                }
+            })
+            .catch(err => console.error('Thread status poll error:', err));
+    }
+    setInterval(checkThreadStatus, 3000);
+
+    // Full-screen Image Lightbox Modal
+    function openImageModal(imgUrl) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        if (!modal || !modalImg) return;
+        modalImg.src = imgUrl;
+        modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+        modal.classList.add('flex', 'opacity-100', 'pointer-events-auto');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageModal() {
+        const modal = document.getElementById('imageModal');
+        if (!modal) return;
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }, 200);
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeImageModal();
+    });
+</script>
+
+<!-- Image Lightbox Modal -->
+<div id="imageModal"
+    class="fixed inset-0 z-50 bg-black/90 hidden backdrop-blur-md transition-all duration-300 flex items-center justify-center p-4 opacity-0 pointer-events-none"
+    onclick="closeImageModal()">
+    <button type="button" onclick="closeImageModal()"
+        class="absolute top-5 right-5 text-white/80 hover:text-white text-3xl focus:outline-none transition p-2 hover:scale-110 z-50"
+        title="ปิด (Esc)">
+        <i class="fas fa-times"></i>
+    </button>
+    <div class="relative max-w-6xl max-h-[90vh] flex items-center justify-center" onclick="event.stopPropagation()">
+        <img id="modalImage" src=""
+            class="max-w-full max-h-[88vh] rounded-xl shadow-2xl object-contain border border-white/10" alt="Full view">
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.contrib.auth.models import User
+from .models import UserProfile
+
+
+@receiver(post_save, sender=User)
+def create_or_save_user_profile(sender, instance, created, **kwargs):
+    """สร้างหรือบันทึก UserProfile อัตโนมัติเมื่อมีการสร้าง User"""
+    if created:
+        UserProfile.objects.get_or_create(user=instance)
+    else:
+        if hasattr(instance, 'profile'):
+            instance.profile.save()
+        else:
+            UserProfile.objects.get_or_create(user=instance)

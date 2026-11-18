@@ -1,0 +1,608 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}แก้ไขโปรไฟล์ - {{ request.user.username }} | GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8 max-w-6xl">
+
+    <!-- ===== BREADCRUMB NAVIGATION ===== -->
+    <nav class="flex items-center text-sm text-[#5F5E5A] space-x-2 flex-wrap mb-6">
+        <a href="{% url 'community:home' %}" class="hover:text-[#7F77DD] transition flex items-center gap-1.5">
+            <i class="fas fa-home text-xs"></i>
+            <span>หน้าแรก</span>
+        </a>
+        <i class="fas fa-chevron-right text-[10px] text-[#D3D1C7]"></i>
+        <a href="{% url 'community:user_profile' request.user.username %}" class="hover:text-[#7F77DD] transition flex items-center gap-1.5">
+            <i class="fas fa-user text-xs"></i>
+            <span>โปรไฟล์ของฉัน (@{{ request.user.username }})</span>
+        </a>
+        <i class="fas fa-chevron-right text-[10px] text-[#D3D1C7]"></i>
+        <span class="text-[#7F77DD] font-semibold">แก้ไขโปรไฟล์</span>
+    </nav>
+
+    <!-- ===== HERO HEADER BANNER ===== -->
+    <div class="relative rounded-3xl overflow-hidden mb-8 border border-[#D3D1C7]/80 shadow-md bg-gradient-to-r from-[#26215C] via-[#3D3A55] to-[#7F77DD] text-white p-6 sm:p-8">
+        <div class="absolute -right-16 -top-16 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-[#7F77DD]/30 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-center gap-5">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-2xl sm:text-3xl border border-white/20 shadow-lg shrink-0">
+                    <i class="fas fa-user-gear"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                        <span class="bg-white/20 backdrop-blur-md text-white text-xs font-semibold px-3 py-0.5 rounded-full border border-white/20 flex items-center gap-1.5">
+                            <i class="fas fa-shield-halved text-[11px] text-amber-300"></i>
+                            <span>ระดับ: {{ request.user.profile.get_rank }}</span>
+                        </span>
+                        <span class="bg-[#EF9F27] text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                            {{ request.user.profile.points }} PTS
+                        </span>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                        แก้ไขข้อมูลโปรไฟล์
+                    </h1>
+                    <p class="text-white/80 text-xs sm:text-sm mt-1 max-w-xl">
+                        ปรับแต่งรูปภาพอวตาร ข้อมูลส่วนตัว และชีวประวัติของคุณให้โดดเด่นในคอมมูนิตี้
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="{% url 'community:user_profile' request.user.username %}"
+                    class="bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition flex items-center gap-2 border border-white/20 backdrop-blur-md shadow-sm">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>กลับไปหน้าโปรไฟล์</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ERROR & NOTIFICATION MESSAGES ===== -->
+    {% if messages %}
+    <div class="mb-6 space-y-3">
+        {% for message in messages %}
+        <div class="p-4 rounded-2xl flex items-center gap-3 shadow-sm {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+            <i class="fas {% if message.tags == 'error' %}fa-triangle-exclamation text-red-500{% elif message.tags == 'success' %}fa-circle-check text-emerald-500{% else %}fa-circle-info text-blue-500{% endif %} text-lg shrink-0"></i>
+            <span class="text-sm font-medium">{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ===== MAIN CONTENT GRID (FORM + LIVE PREVIEW) ===== -->
+    <form method="POST" enctype="multipart/form-data" id="profileEditForm" class="space-y-8">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- ===== LEFT COLUMN: EDIT FORM CONTROLS (7 COLS) ===== -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1. AVATAR UPLOAD CARD -->
+                <div class="bg-white rounded-3xl p-6 sm:p-7 border border-[#D3D1C7] shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-xl bg-[#EEEDFA] text-[#7F77DD] flex items-center justify-center font-bold text-sm">
+                                <i class="fas fa-camera"></i>
+                            </span>
+                            <div>
+                                <h2 class="text-base font-bold text-[#2C2C2A]">รูปภาพโปรไฟล์</h2>
+                                <p class="text-xs text-[#5F5E5A]">แสดงในบอร์ดคอมมูนิตี้ แชท และหน้าโปรไฟล์ของคุณ</p>
+                            </div>
+                        </div>
+                        <span class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full font-medium">Avatar</span>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-6">
+                        <!-- Clickable Avatar Wrapper -->
+                        <div class="relative group cursor-pointer shrink-0" onclick="document.getElementById('id_avatar').click()" title="คลิกเพื่ออัปโหลดรูปภาพใหม่">
+                            <div class="w-32 h-32 rounded-full overflow-hidden p-1 bg-gradient-to-tr from-[#7F77DD] to-indigo-400 shadow-xl group-hover:scale-105 transition duration-300">
+                                {% if profile.avatar %}
+                                <img src="{{ profile.avatar.url }}" alt="{{ request.user.username }}"
+                                    class="w-full h-full rounded-full object-cover bg-white"
+                                    id="formAvatarPreview">
+                                {% else %}
+                                <div class="w-full h-full rounded-full bg-slate-100 flex items-center justify-center text-slate-400"
+                                    id="formAvatarPlaceholder">
+                                    <i class="fas fa-user text-5xl"></i>
+                                </div>
+                                <img src="" alt="Avatar"
+                                    class="w-full h-full rounded-full object-cover bg-white hidden"
+                                    id="formAvatarPreview">
+                                {% endif %}
+                            </div>
+
+                            <!-- Camera Hover Overlay -->
+                            <div class="absolute inset-0 m-1 flex flex-col items-center justify-center bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition duration-300 backdrop-blur-[2px]">
+                                <i class="fas fa-camera text-2xl mb-1"></i>
+                                <span class="text-[11px] font-medium">เปลี่ยนรูป</span>
+                            </div>
+
+                            <!-- Active Status Ring Indicator -->
+                            <div class="absolute bottom-2 right-2 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white shadow-sm" title="สถานะพร้อมใช้งาน"></div>
+                        </div>
+
+                        <!-- Upload Instructions & Actions -->
+                        <div class="flex-1 text-center sm:text-left">
+                            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mb-3">
+                                <button type="button" onclick="document.getElementById('id_avatar').click()"
+                                    class="inline-flex items-center gap-2 bg-[#7F77DD] hover:bg-[#6A62C4] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition">
+                                    <i class="fas fa-cloud-arrow-up"></i>
+                                    <span>เลือกไฟล์รูปภาพ</span>
+                                </button>
+                                
+                                <button type="button" id="resetAvatarBtn" onclick="resetAvatarSelection()"
+                                    class="hidden inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-2.5 rounded-xl transition">
+                                    <i class="fas fa-rotate-left text-gray-500"></i>
+                                    <span>รีเซ็ตรูปเดิม</span>
+                                </button>
+                            </div>
+
+                            <!-- Hidden Actual File Input -->
+                            <input type="file" class="hidden" id="id_avatar" name="avatar" accept="image/png, image/jpeg, image/webp" onchange="handleAvatarChange(this)">
+
+                            {% if profile_form.avatar.errors %}
+                            <p class="text-xs text-red-600 font-semibold mb-2 flex items-center gap-1">
+                                <i class="fas fa-circle-exclamation"></i>
+                                {{ profile_form.avatar.errors.0 }}
+                            </p>
+                            {% endif %}
+
+                            <div class="text-xs text-[#5F5E5A] space-y-1">
+                                <p class="flex items-center justify-center sm:justify-start gap-1.5">
+                                    <i class="fas fa-check text-emerald-500 text-[10px]"></i>
+                                    รองรับไฟล์นามสกุล <strong>JPG, PNG, WebP</strong>
+                                </p>
+                                <p class="flex items-center justify-center sm:justify-start gap-1.5">
+                                    <i class="fas fa-check text-emerald-500 text-[10px]"></i>
+                                    ขนาดไฟล์สูงสุดไม่เกิน <strong>5MB</strong> (แนะนำสัดส่วน 1:1)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. PERSONAL INFORMATION CARD -->
+                <div class="bg-white rounded-3xl p-6 sm:p-7 border border-[#D3D1C7] shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-xl bg-[#EEEDFA] text-[#7F77DD] flex items-center justify-center font-bold text-sm">
+                                <i class="fas fa-id-card"></i>
+                            </span>
+                            <div>
+                                <h2 class="text-base font-bold text-[#2C2C2A]">ข้อมูลส่วนตัวพื้นฐาน</h2>
+                                <p class="text-xs text-[#5F5E5A]">ชื่อผู้ใช้งาน ชื่อ-นามสกุล และอีเมลของคุณ</p>
+                            </div>
+                        </div>
+                        <span class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full font-medium">Personal</span>
+                    </div>
+
+                    <div class="space-y-5">
+                        <!-- Read-only Username Field -->
+                        <div>
+                            <label class="block text-xs font-semibold text-[#5F5E5A] uppercase tracking-wider mb-2 flex items-center justify-between">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fas fa-at text-[#7F77DD]"></i>
+                                    <span>ชื่อผู้ใช้ (Username)</span>
+                                </span>
+                                <span class="text-[11px] text-gray-400 font-normal normal-case flex items-center gap-1">
+                                    <i class="fas fa-lock text-[10px]"></i> ไม่สามารถเเก้ไขได้
+                                </span>
+                            </label>
+                            <div class="relative">
+                                <input type="text" value="{{ request.user.username }}" readonly
+                                    class="w-full bg-slate-50 border border-slate-200 text-slate-500 text-sm font-semibold rounded-xl px-4 py-3 cursor-not-allowed select-none focus:outline-none">
+                                <div class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- First Name & Last Name Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- First Name -->
+                            <div>
+                                <label for="id_first_name" class="block text-xs font-semibold text-[#2C2C2A] mb-1.5 flex items-center gap-1.5">
+                                    <i class="fas fa-user text-gray-400"></i>
+                                    <span>ชื่อจริง</span>
+                                </label>
+                                <input type="text"
+                                    class="w-full bg-white border border-[#D3D1C7] text-sm text-[#2C2C2A] rounded-xl px-4 py-3 focus:outline-none focus:border-[#7F77DD] focus:ring-4 focus:ring-[#7F77DD]/10 transition shadow-sm {% if user_form.first_name.errors %}border-red-500 focus:border-red-500 focus:ring-red-100{% endif %}"
+                                    id="id_first_name" name="first_name" value="{{ user.first_name }}" maxlength="150"
+                                    placeholder="กรอกชื่อจริง"
+                                    oninput="syncPreviewFullName()">
+                                {% if user_form.first_name.errors %}
+                                <p class="mt-1 text-xs text-red-600 font-medium">{{ user_form.first_name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Last Name -->
+                            <div>
+                                <label for="id_last_name" class="block text-xs font-semibold text-[#2C2C2A] mb-1.5 flex items-center gap-1.5">
+                                    <i class="fas fa-user text-gray-400"></i>
+                                    <span>นามสกุล</span>
+                                </label>
+                                <input type="text"
+                                    class="w-full bg-white border border-[#D3D1C7] text-sm text-[#2C2C2A] rounded-xl px-4 py-3 focus:outline-none focus:border-[#7F77DD] focus:ring-4 focus:ring-[#7F77DD]/10 transition shadow-sm {% if user_form.last_name.errors %}border-red-500 focus:border-red-500 focus:ring-red-100{% endif %}"
+                                    id="id_last_name" name="last_name" value="{{ user.last_name }}" maxlength="150"
+                                    placeholder="กรอกนามสกุล"
+                                    oninput="syncPreviewFullName()">
+                                {% if user_form.last_name.errors %}
+                                <p class="mt-1 text-xs text-red-600 font-medium">{{ user_form.last_name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div>
+                            <label for="id_email" class="block text-xs font-semibold text-[#2C2C2A] mb-1.5 flex items-center justify-between">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fas fa-envelope text-gray-400"></i>
+                                    <span>อีเมล (Email)</span>
+                                    <span class="text-red-500">*</span>
+                                </span>
+                                <span class="text-[11px] text-gray-400 font-normal">ใช้สำหรับแจ้งเตือนและกู้รหัส</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-sm">
+                                    <i class="fas fa-at"></i>
+                                </div>
+                                <input type="email"
+                                    class="w-full bg-white border border-[#D3D1C7] text-sm text-[#2C2C2A] rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#7F77DD] focus:ring-4 focus:ring-[#7F77DD]/10 transition shadow-sm {% if user_form.email.errors %}border-red-500 focus:border-red-500 focus:ring-red-100{% endif %}"
+                                    id="id_email" name="email" value="{{ user.email }}" required
+                                    placeholder="name@example.com">
+                            </div>
+                            {% if user_form.email.errors %}
+                            <p class="mt-1 text-xs text-red-600 font-medium">{{ user_form.email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. BIO & PUBLIC ABOUT ME CARD -->
+                <div class="bg-white rounded-3xl p-6 sm:p-7 border border-[#D3D1C7] shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-xl bg-[#EEEDFA] text-[#7F77DD] flex items-center justify-center font-bold text-sm">
+                                <i class="fas fa-quote-left"></i>
+                            </span>
+                            <div>
+                                <h2 class="text-base font-bold text-[#2C2C2A]">ชีวประวัติ (Bio) & แนะนำตัวเอง</h2>
+                                <p class="text-xs text-[#5F5E5A]">ข้อความสั้น ๆ ที่จะปรากฏใต้โปรไฟล์ของคุณ</p>
+                            </div>
+                        </div>
+                        <span class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full font-medium">About</span>
+                    </div>
+
+                    <div>
+                        <div class="relative">
+                            <textarea
+                                class="w-full bg-white border border-[#D3D1C7] text-sm text-[#2C2C2A] rounded-2xl p-4 focus:outline-none focus:border-[#7F77DD] focus:ring-4 focus:ring-[#7F77DD]/10 transition shadow-sm leading-relaxed resize-y {% if profile_form.bio.errors %}border-red-500 focus:border-red-500{% endif %}"
+                                id="id_bio" name="bio" rows="4" maxlength="300"
+                                placeholder="เล่าความเป็นตัวคุณ เกมที่คุณชื่นชอบ สไตล์การเล่น หรือช่องทางติดต่อเพิ่มเติม..."
+                                oninput="syncPreviewBio()">{{ profile.bio }}</textarea>
+                            
+                            <!-- Character Count Badge -->
+                            <div class="flex justify-between items-center text-[11px] text-gray-400 mt-1 px-1">
+                                <span>แนะนำตัวเองให้เพื่อน ๆ สมาชิกรู้จัก</span>
+                                <div>
+                                    <span id="bioCharCount" class="font-bold text-[#7F77DD]">0</span>/300 ตัวอักษร
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if profile_form.bio.errors %}
+                        <p class="mt-1 text-xs text-red-600 font-medium">{{ profile_form.bio.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 4. ACTION CONTROLS -->
+                <div class="bg-white rounded-3xl p-6 border border-[#D3D1C7] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-xs text-gray-500 text-center sm:text-left flex items-center gap-2">
+                        <i class="fas fa-shield-heart text-[#7F77DD] text-base"></i>
+                        <span>ตรวจสอบข้อมูลให้ถูกต้องก่อนกดบันทึก</span>
+                    </div>
+
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <a href="{% url 'community:user_profile' request.user.username %}"
+                            class="flex-1 sm:flex-none text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-xmark"></i>
+                            <span>ยกเลิก</span>
+                        </a>
+
+                        <button type="submit" id="saveProfileBtn"
+                            class="flex-1 sm:flex-none bg-gradient-to-r from-[#7F77DD] to-indigo-600 hover:from-[#6A62C4] hover:to-indigo-700 text-white font-bold py-3 px-7 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform active:scale-95 text-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-floppy-disk"></i>
+                            <span>บันทึกการเปลี่ยนแปลง</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ===== RIGHT COLUMN: LIVE INTERACTIVE PREVIEW CARD (5 COLS) ===== -->
+            <div class="lg:col-span-5 lg:sticky lg:top-8 space-y-4">
+                
+                <!-- Preview Header Bar -->
+                <div class="flex items-center justify-between px-2">
+                    <div class="flex items-center gap-2 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                        <i class="fas fa-eye text-[#7F77DD]"></i>
+                        <span>ตัวอย่างการแสดงผลโปรไฟล์</span>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        อัปเดตสดแบบเรียลไทม์
+                    </span>
+                </div>
+
+                <!-- Simulated User Profile Card -->
+                <div class="bg-white rounded-3xl border border-[#D3D1C7] shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
+                    
+                    <!-- Cover Header -->
+                    <div class="h-28 bg-gradient-to-r from-[#26215C] via-[#3D3A55] to-[#7F77DD] relative">
+                        <div class="absolute inset-0 bg-black/10"></div>
+                        <div class="absolute top-3 right-3 bg-black/30 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] text-white/90 font-medium border border-white/10 flex items-center gap-1.5">
+                            <i class="fas fa-trophy text-amber-300 text-[10px]"></i>
+                            <span>{{ request.user.profile.points }} คะแนน</span>
+                        </div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="px-6 pb-6 pt-0 relative">
+                        
+                        <!-- Avatar & Rank Row -->
+                        <div class="flex items-end justify-between -mt-12 mb-4">
+                            <div class="relative">
+                                <div class="w-24 h-24 rounded-full p-1 bg-white shadow-xl">
+                                    {% if profile.avatar %}
+                                    <img src="{{ profile.avatar.url }}" alt="Preview Avatar"
+                                        class="w-full h-full rounded-full object-cover bg-slate-100"
+                                        id="liveCardAvatar">
+                                    {% else %}
+                                    <div class="w-full h-full rounded-full bg-slate-100 flex items-center justify-center text-slate-400"
+                                        id="liveCardAvatarPlaceholder">
+                                        <i class="fas fa-user text-3xl"></i>
+                                    </div>
+                                    <img src="" alt="Preview Avatar"
+                                        class="w-full h-full rounded-full object-cover bg-slate-100 hidden"
+                                        id="liveCardAvatar">
+                                    {% endif %}
+                                </div>
+                                <div class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm" title="Online"></div>
+                            </div>
+
+                            <!-- Rank Badge Pill -->
+                            <div class="bg-[#EEEDFA] border border-[#7F77DD]/30 text-[#7F77DD] text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5">
+                                <i class="fas fa-medal text-amber-500"></i>
+                                <span>{{ request.user.profile.get_rank }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Names & Handle -->
+                        <div class="mb-4">
+                            <h3 class="text-xl font-black text-[#2C2C2A] tracking-tight flex items-center gap-2">
+                                <span id="previewNameDisplay">
+                                    {% if user.first_name or user.last_name %}
+                                        {{ user.first_name }} {{ user.last_name }}
+                                    {% else %}
+                                        {{ user.username }}
+                                    {% endif %}
+                                </span>
+                                <i class="fas fa-circle-check text-[#7F77DD] text-sm" title="ยืนยันแล้ว"></i>
+                            </h3>
+                            <p class="text-xs text-gray-400 font-medium">@{{ user.username }}</p>
+                        </div>
+
+                        <!-- Bio Box in Preview -->
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-4 relative">
+                            <i class="fas fa-quote-left text-slate-300 text-xs absolute top-2.5 left-3"></i>
+                            <p class="text-xs text-gray-600 leading-relaxed pl-3 italic line-clamp-4 min-h-[40px]" id="previewBioDisplay">
+                                {{ profile.bio|default:"ยังไม่ได้ระบุชีวประวัติ..." }}
+                            </p>
+                        </div>
+
+                        <!-- Profile Stats Summary Grid -->
+                        <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-gray-100">
+                            <div class="p-2 rounded-xl bg-gray-50/80">
+                                <div class="text-[11px] font-bold text-[#7F77DD] truncate">{{ request.user.profile.get_rank }}</div>
+                                <div class="text-[10px] text-gray-400 uppercase font-medium">ระดับ</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-gray-50/80">
+                                <div class="text-xs font-bold text-[#2C2C2A]">{{ request.user.profile.points }}</div>
+                                <div class="text-[10px] text-gray-400 uppercase font-medium">คะแนน</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-gray-50/80">
+                                <div class="text-xs font-bold text-emerald-600 flex items-center justify-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ปกติ
+                                </div>
+                                <div class="text-[10px] text-gray-400 uppercase font-medium">สถานะ</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Informational Tip Card -->
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50/50 border border-amber-200/70 rounded-2xl p-4 text-xs text-amber-900 flex items-start gap-3 shadow-sm">
+                    <i class="fas fa-lightbulb text-amber-500 text-sm mt-0.5 shrink-0"></i>
+                    <div>
+                        <strong class="font-bold block mb-0.5">เคล็ดลับการแต่งโปรไฟล์:</strong>
+                        <span>การเขียนชีวประวัติที่น่าสนใจและระบุแนวเกมที่ชอบ จะช่วยให้เพื่อน ๆ ในคอมมูนิตี้ชวนเข้าตี้เล่นเกมได้ง่ายขึ้น!</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </form>
+
+</div>
+
+<!-- ===== REAL-TIME LIVE INTERACTION SCRIPT ===== -->
+<script>
+    // Store original avatar sources for reset functionality
+    const originalAvatarSrc = "{% if profile.avatar %}{{ profile.avatar.url }}{% endif %}";
+    const usernameFallback = "{{ user.username }}";
+
+    // Initialize character counter on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        syncPreviewBio();
+        syncPreviewFullName();
+    });
+
+    // Handle avatar file selection & live sync
+    function handleAvatarChange(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('ไฟล์รูปภาพมีขนาดเกิน 5MB กรุณาเลือกไฟล์ที่ขนาดเล็กลง');
+                input.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const dataUrl = e.target.result;
+
+                // Form avatar preview
+                const formPreview = document.getElementById('formAvatarPreview');
+                const formPlaceholder = document.getElementById('formAvatarPlaceholder');
+                if (formPreview) {
+                    formPreview.src = dataUrl;
+                    formPreview.classList.remove('hidden');
+                }
+                if (formPlaceholder) {
+                    formPlaceholder.classList.add('hidden');
+                }
+
+                // Live Card avatar preview
+                const livePreview = document.getElementById('liveCardAvatar');
+                const livePlaceholder = document.getElementById('liveCardAvatarPlaceholder');
+                if (livePreview) {
+                    livePreview.src = dataUrl;
+                    livePreview.classList.remove('hidden');
+                }
+                if (livePlaceholder) {
+                    livePlaceholder.classList.add('hidden');
+                }
+
+                // Show reset button
+                const resetBtn = document.getElementById('resetAvatarBtn');
+                if (resetBtn) {
+                    resetBtn.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Reset avatar back to original
+    function resetAvatarSelection() {
+        const input = document.getElementById('id_avatar');
+        if (input) {
+            input.value = '';
+        }
+
+        const formPreview = document.getElementById('formAvatarPreview');
+        const formPlaceholder = document.getElementById('formAvatarPlaceholder');
+        const livePreview = document.getElementById('liveCardAvatar');
+        const livePlaceholder = document.getElementById('liveCardAvatarPlaceholder');
+        const resetBtn = document.getElementById('resetAvatarBtn');
+
+        if (originalAvatarSrc) {
+            if (formPreview) {
+                formPreview.src = originalAvatarSrc;
+                formPreview.classList.remove('hidden');
+            }
+            if (livePreview) {
+                livePreview.src = originalAvatarSrc;
+                livePreview.classList.remove('hidden');
+            }
+            if (formPlaceholder) formPlaceholder.classList.add('hidden');
+            if (livePlaceholder) livePlaceholder.classList.add('hidden');
+        } else {
+            if (formPreview) {
+                formPreview.src = '';
+                formPreview.classList.add('hidden');
+            }
+            if (livePreview) {
+                livePreview.src = '';
+                livePreview.classList.add('hidden');
+            }
+            if (formPlaceholder) formPlaceholder.classList.remove('hidden');
+            if (livePlaceholder) livePlaceholder.classList.remove('hidden');
+        }
+
+        if (resetBtn) {
+            resetBtn.classList.add('hidden');
+        }
+    }
+
+    // Live sync full name
+    function syncPreviewFullName() {
+        const firstName = document.getElementById('id_first_name')?.value.trim() || '';
+        const lastName = document.getElementById('id_last_name')?.value.trim() || '';
+        const display = document.getElementById('previewNameDisplay');
+
+        if (display) {
+            if (firstName || lastName) {
+                display.textContent = `${firstName} ${lastName}`.trim();
+            } else {
+                display.textContent = usernameFallback;
+            }
+        }
+    }
+
+    // Live sync bio text & character counter
+    function syncPreviewBio() {
+        const bioInput = document.getElementById('id_bio');
+        const bioDisplay = document.getElementById('previewBioDisplay');
+        const countDisplay = document.getElementById('bioCharCount');
+
+        if (!bioInput) return;
+
+        const val = bioInput.value;
+        if (countDisplay) {
+            countDisplay.textContent = val.length;
+        }
+
+        if (bioDisplay) {
+            if (val.trim().length > 0) {
+                bioDisplay.textContent = val;
+                bioDisplay.classList.remove('text-gray-400');
+                bioDisplay.classList.add('text-gray-600');
+            } else {
+                bioDisplay.textContent = 'ยังไม่ได้ระบุชีวประวัติ...';
+                bioDisplay.classList.add('text-gray-400');
+                bioDisplay.classList.remove('text-gray-600');
+            }
+        }
+    }
+
+    // Append bio suggestion tag
+    function appendBioTag(text) {
+        const bioInput = document.getElementById('id_bio');
+        if (!bioInput) return;
+
+        if (bioInput.value.trim().length > 0) {
+            bioInput.value = bioInput.value.trim() + ' ' + text;
+        } else {
+            bioInput.value = text;
+        }
+
+        // Limit to 300 chars
+        if (bioInput.value.length > 300) {
+            bioInput.value = bioInput.value.substring(0, 300);
+        }
+
+        syncPreviewBio();
+        bioInput.focus();
+    }
+</script>
+{% endblock %}

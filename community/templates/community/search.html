@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}ผลการค้นหา - GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 flex items-center mb-2">
+            <i class="fas fa-search mr-3 text-primary"></i> ผลการค้นหา
+        </h1>
+        {% if query %}
+        <p class="text-gray-500">ผลการค้นหาสำหรับ: <strong class="text-gray-800">{{ query }}</strong></p>
+        {% endif %}
+    </div>
+
+    <!-- Users Section -->
+    {% if users %}
+    <div class="mb-10">
+        <div class="flex items-center mb-4">
+            <div class="p-2 bg-blue-100 rounded-lg mr-3">
+                <i class="fas fa-user text-blue-600"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800">ผู้ใช้</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for user in users %}
+            <div
+                class="bg-white rounded-lg shadow-sm border border-gray-100 p-4 hover:shadow-md transition flex items-center">
+                {% if user.profile.avatar %}
+                <img src="{{ user.profile.avatar.url }}" class="w-12 h-12 rounded-full object-cover mr-4"
+                    alt="{{ user.username }}">
+                {% else %}
+                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mr-4 text-gray-500">
+                    <i class="fas fa-user"></i>
+                </div>
+                {% endif %}
+                <div class="flex-grow">
+                    <h5 class="font-bold text-gray-800">{{ user.username }}</h5>
+                    <p class="text-xs text-gray-500">{{ user.profile.points }} คะแนน</p>
+                </div>
+                <a href="{% url 'community:user_profile' user.username %}"
+                    class="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary hover:text-white transition">
+                    ดู
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Games Section -->
+    {% if games %}
+    <div class="mb-10">
+        <div class="flex items-center mb-4">
+            <div class="p-2 bg-green-100 rounded-lg mr-3">
+                <i class="fas fa-gamepad text-green-600"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800">เกม</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for game in games %}
+            <div
+                class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
+                <div class="p-5">
+                    <div class="flex justify-between items-start mb-2">
+                        <h5 class="text-lg font-bold text-gray-800">{{ game.name }}</h5>
+                        <span class="text-xs font-semibold px-2 py-1 bg-gray-100 text-gray-600 rounded">{{ game.genre
+                            }}</span>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2 h-10">{{ game.description }}</p>
+                    <a href="{% url 'community:game_detail' game.id %}"
+                        class="block w-full text-center bg-gray-50 hover:bg-primary hover:text-white text-gray-700 font-medium py-2 rounded transition text-sm">
+                        เข้าชม
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Threads Section -->
+    {% if threads %}
+    <div class="mb-10">
+        <div class="flex items-center mb-4">
+            <div class="p-2 bg-purple-100 rounded-lg mr-3">
+                <i class="fas fa-comments text-purple-600"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800">กระทู้</h3>
+        </div>
+
+        <div class="space-y-4">
+            {% for thread in threads %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
+                <h5 class="text-lg font-bold mb-1">
+                    <a href="{% url 'community:thread_detail' thread.id %}"
+                        class="text-gray-900 hover:text-primary transition">
+                        {{ thread.title }}
+                    </a>
+                </h5>
+                <div class="text-sm text-gray-500 mb-2">
+                    โดย <span class="font-medium text-gray-700">{{ thread.author.username }}</span> ใน <span
+                        class="font-medium text-primary">{{ thread.game.name }}</span>
+                </div>
+                <p class="text-gray-600 mb-0 line-clamp-2">{{ thread.content|truncatewords:30 }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- No Results -->
+    {% if not users and not games and not threads and query %}
+    <div class="bg-blue-50 border border-blue-100 rounded-lg p-10 text-center">
+        <i class="fas fa-search text-4xl text-blue-300 mb-4"></i>
+        <h3 class="text-lg font-medium text-blue-800 mb-2">ไม่พบผลการค้นหา</h3>
+        <p class="text-blue-600">ลองใช้คำค้นหาอื่น หรือตรวจสอบตัวสะกดอีกครั้ง</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

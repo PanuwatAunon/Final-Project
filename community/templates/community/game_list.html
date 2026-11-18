@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}รายการเกม - GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8">
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-[#2C2C2A] flex items-center">
+            <i class="fas fa-gamepad mr-3 text-[#7F77DD]"></i> รายการเกมทั้งหมด
+        </h2>
+    </div>
+
+    <!-- Search Form -->
+    <div class="mb-8">
+        <div class="max-w-2xl mx-auto">
+            <form method="get" action="{% url 'community:game_list' %}" class="flex gap-2">
+                <input type="text"
+                    class="flex-grow border border-[#D3D1C7] rounded-xl px-6 py-3 text-lg focus:ring-2 focus:ring-[#7F77DD]/20 focus:border-[#7F77DD] outline-none transition shadow-sm bg-white"
+                    name="q" placeholder="ค้นหาเกม..." value="{{ query|default_if_none:'' }}">
+                <button
+                    class="bg-[#7F77DD] hover:bg-[#6A62C4] text-white font-bold py-3 px-8 rounded-xl transition shadow-md flex items-center"
+                    type="submit">
+                    <i class="fas fa-search text-xl"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Games Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for game in games %}
+        <div
+            class="bg-white rounded-2xl shadow-sm border border-[#D3D1C7] overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full">
+            <div class="h-48 overflow-hidden bg-[#F1EFE8] relative">
+                {% if game.cover_image %}
+                <img src="{{ game.cover_image.url }}"
+                    class="w-full h-full object-cover transition duration-500 hover:scale-110" alt="{{ game.name }}">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#7F77DD] to-[#26215C]">
+                    <i class="fas fa-gamepad text-white/30 text-5xl"></i>
+                </div>
+                {% endif %}
+                <span
+                    class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2.5 py-1 rounded-lg backdrop-blur-sm border border-white/20 font-medium">
+                    {{ game.genre }}
+                </span>
+            </div>
+
+            <div class="p-5 flex-grow">
+                <h5 class="text-xl font-bold text-[#2C2C2A] mb-2 truncate">{{ game.name }}</h5>
+                <p class="text-[#5F5E5A] text-sm mb-4 line-clamp-2 h-10">{{ game.description }}</p>
+
+                <div class="flex items-center justify-between">
+                    <!-- Like Button -->
+                    {% if user.is_authenticated %}
+                    <button onclick="likeGame({{ game.id }}, this)"
+                        class="flex items-center gap-1.5 text-sm font-semibold transition group {% if user in game.likes.all %}text-[#E24B4A]{% else %}text-[#5F5E5A] hover:text-[#E24B4A]{% endif %}">
+                        <i class="{% if user in game.likes.all %}fas{% else %}far{% endif %} fa-heart text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="like-count">{{ game.likes.count }}</span>
+                    </button>
+                    {% else %}
+                    <div class="flex items-center gap-1.5 text-sm text-[#5F5E5A]">
+                        <i class="far fa-heart"></i>
+                        <span>{{ game.likes.count }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="flex items-center gap-3 text-xs text-[#5F5E5A]">
+                        <span><i class="fas fa-book text-[#1D9E75] mr-1"></i>{{ game.guides.count }} ไกด์</span>
+                        <span><i class="fas fa-users text-[#7F77DD] mr-1"></i>{{ game.chat_groups.count }} กลุ่ม</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-[#F1EFE8]/50 border-t border-[#D3D1C7] mt-auto">
+                <a href="{% url 'community:game_detail' game.id %}"
+                    class="block w-full text-center bg-white border border-[#7F77DD] text-[#7F77DD] hover:bg-[#7F77DD] hover:text-white font-semibold py-2.5 rounded-xl transition">
+                    <i class="fas fa-arrow-right mr-2"></i> เข้าชม
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-1 md:col-span-2 lg:col-span-3">
+            <div class="bg-[#EEEDFA] border border-[#7F77DD]/20 text-[#2C2C2A] rounded-2xl p-8 text-center">
+                <i class="fas fa-search text-4xl mb-3 text-[#7F77DD] opacity-50"></i>
+                <p class="text-lg">ไม่พบเกมที่คุณค้นหา</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function likeGame(gameId, button) {
+        fetch(`/game/${gameId}/like/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const icon = button.querySelector('i');
+            const count = button.querySelector('.like-count');
+            count.textContent = data.likes_count;
+            
+            if (data.liked) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+                button.classList.remove('text-[#5F5E5A]');
+                button.classList.add('text-[#E24B4A]');
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+                button.classList.remove('text-[#E24B4A]');
+                button.classList.add('text-[#5F5E5A]');
+            }
+        });
+    }
+</script>
+{% endblock %}

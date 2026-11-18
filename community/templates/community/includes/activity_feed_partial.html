@@ -1,0 +1,169 @@
+{% for activity in activities %}
+{% if activity.type == 'Thread' %}
+{% url 'community:thread_detail' activity.id as detail_url %}
+{% else %}
+{% url 'community:guide_detail' activity.id as detail_url %}
+{% endif %}
+<div data-url="{{ detail_url }}"
+    data-activity-id="{{ activity.type }}-{{ activity.id }}"
+    onclick="const targetEl = event.target.closest ? event.target : event.target.parentElement; if (targetEl && !targetEl.closest('a, button, form, input, select, textarea, video, .reaction-bar')) { window.location.href = this.dataset.url; }"
+    class="bg-white rounded-2xl shadow-sm border border-[#D3D1C7] overflow-hidden hover:shadow-md transition duration-200 cursor-pointer">
+    <div class="p-5">
+        <!-- Header -->
+        <div class="flex justify-between items-start mb-3">
+            <div class="flex items-center">
+                <a href="{% url 'community:user_profile' activity.author.username %}" class="flex-shrink-0">
+                    {% if activity.author.profile.avatar %}
+                    <img src="{{ activity.author.profile.avatar.url }}"
+                        class="w-10 h-10 rounded-full object-cover border border-[#D3D1C7] mr-3" alt="Avatar">
+                    {% else %}
+                    <div
+                        class="w-10 h-10 rounded-full bg-[#EEEDFA] border border-[#D3D1C7] flex justify-center items-center mr-3 text-[#7F77DD]">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    {% endif %}
+                </a>
+                <div>
+                    <h6 class="font-bold text-[#2C2C2A] leading-none mb-1 text-sm">
+                        <a href="{% url 'community:user_profile' activity.author.username %}"
+                            class="hover:text-[#7F77DD] transition">
+                            {{ activity.author.username }}
+                        </a>
+                    </h6>
+                    <div class="flex items-center text-xs text-[#5F5E5A]">
+                        <span class="timesince-text">{{ activity.created_at|timesince }} ที่แล้ว</span>
+                        <span class="mx-1">&bull;</span>
+                        {% if activity.visibility == 'public' %}
+                        <i class="fas fa-globe text-[#5F5E5A]" title="สาธารณะ"></i>
+                        {% elif activity.visibility == 'friends' %}
+                        <i class="fas fa-user-friends text-[#5F5E5A]" title="เฉพาะเพื่อน"></i>
+                        {% else %}
+                        <i class="fas fa-lock text-[#5F5E5A]" title="ส่วนตัว"></i>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <span
+                class="{% if activity.type == 'Guide' %}bg-[#FEF5E8] text-[#854F0B] border border-[#EF9F27]/30{% else %}bg-[#EEEDFA] text-[#7F77DD] border border-[#7F77DD]/30{% endif %} px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                {{ activity.type }}
+            </span>
+        </div>
+
+        <!-- Content -->
+        <div class="mb-4">
+            {% if activity.type == 'Guide' %}
+            <h5 class="text-base font-bold mb-1 text-[#2C2C2A]">
+                <a href="{% url 'community:guide_detail' activity.id %}"
+                    class="hover:text-[#7F77DD] transition">{{ activity.title }}</a>
+            </h5>
+            {% elif activity.title and activity.title != activity.content %}
+            <h5 class="text-base font-bold mb-1 text-[#2C2C2A]">
+                <a href="{% url 'community:thread_detail' activity.id %}"
+                    class="hover:text-[#7F77DD] transition">{{ activity.title }}</a>
+            </h5>
+            {% endif %}
+
+            {% if activity.game %}
+            <p class="text-xs text-[#5F5E5A] mb-2">ในเกม <a
+                    href="{% url 'community:game_detail' activity.game.id %}"
+                    class="text-[#7F77DD] hover:underline font-medium">{{ activity.game.name }}</a></p>
+            {% endif %}
+
+            <p class="text-[#2C2C2A] text-base leading-relaxed mb-3">{{ activity.content|truncatewords:50 }}</p>
+
+            {% if activity.type == 'Thread' %}
+            {% if activity.image %}
+            <div class="rounded-xl overflow-hidden mb-3 border border-gray-100">
+                <img src="{{ activity.image.url }}" class="w-full h-auto max-h-[400px] object-cover"
+                    alt="{{ activity.title }}">
+            </div>
+            {% endif %}
+            {% if activity.video %}
+            <div class="rounded-xl overflow-hidden mb-3 aspect-w-16 aspect-h-9 bg-black">
+                <video controls preload="metadata" class="w-full h-full">
+                    <source src="{{ activity.video.url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Footer / Actions -->
+        <div class="flex justify-between items-center pt-3 border-t border-gray-100">
+            <div class="flex items-center space-x-5">
+                <!-- Reaction Container with Hover Pop-up -->
+                <div class="relative reaction-wrapper inline-block" onmouseenter="openReactionPopup(this)"
+                    onmouseleave="closeReactionPopup(this)">
+                    {% if user.is_authenticated %}
+                    <!-- Floating Reaction Bar on Hover -->
+                    <div
+                        class="reaction-bar absolute bottom-full mb-2 left-0 hidden opacity-0 items-center gap-1.5 bg-white shadow-xl border border-[#D3D1C7] px-3 py-1.5 rounded-full z-40 transition-all duration-300 backdrop-blur-sm">
+                        <button type="button"
+                            onclick="event.stopPropagation(); event.preventDefault(); likeActivity('{% if activity.type == 'Thread' %}thread{% else %}guide{% endif %}', {{ activity.id }}, 'like', this)"
+                            title="ถูกใจ"
+                            class="text-lg hover:scale-125 hover:-translate-y-1 transition-transform p-1 rounded-full hover:bg-[#EEEDFA] relative z-50 pointer-events-auto cursor-pointer">
+                            ❤️
+                        </button>
+                        <button type="button"
+                            onclick="event.stopPropagation(); event.preventDefault(); likeActivity('{% if activity.type == 'Thread' %}thread{% else %}guide{% endif %}', {{ activity.id }}, 'laugh', this)"
+                            title="ขำ"
+                            class="text-lg hover:scale-125 hover:-translate-y-1 transition-transform p-1 rounded-full hover:bg-[#FEF5E8] relative z-50 pointer-events-auto cursor-pointer">
+                            😆
+                        </button>
+                        <button type="button"
+                            onclick="event.stopPropagation(); event.preventDefault(); likeActivity('{% if activity.type == 'Thread' %}thread{% else %}guide{% endif %}', {{ activity.id }}, 'sad', this)"
+                            title="เศร้า"
+                            class="text-lg hover:scale-125 hover:-translate-y-1 transition-transform p-1 rounded-full hover:bg-[#EEEDFA] relative z-50 pointer-events-auto cursor-pointer">
+                            😢
+                        </button>
+                        <button type="button"
+                            onclick="event.stopPropagation(); event.preventDefault(); likeActivity('{% if activity.type == 'Thread' %}thread{% else %}guide{% endif %}', {{ activity.id }}, 'angry', this)"
+                            title="โกรธ"
+                            class="text-lg hover:scale-125 hover:-translate-y-1 transition-transform p-1 rounded-full hover:bg-[#FCEBEB] relative z-50 pointer-events-auto cursor-pointer">
+                            😡
+                        </button>
+                    </div>
+
+                    <!-- Main Reaction Button -->
+                    <button type="button"
+                        onclick="event.stopPropagation(); likeActivity('{% if activity.type == 'Thread' %}thread{% else %}guide{% endif %}', {{ activity.id }}, 'like', this)"
+                        class="flex items-center gap-1.5 text-sm font-semibold transition group reaction-btn {% if activity.user_reaction %}text-[#E24B4A]{% else %}text-[#5F5E5A] hover:text-[#E24B4A]{% endif %}">
+                        <span class="reaction-icon text-base">
+                            {% if activity.user_reaction == 'laugh' %}😆
+                            {% elif activity.user_reaction == 'sad' %}😢
+                            {% elif activity.user_reaction == 'angry' %}😡
+                            {% elif activity.user_reaction == 'like' %}❤️
+                            {% else %}<i
+                                class="far fa-heart text-base group-hover:scale-110 transition-transform"></i>
+                            {% endif %}
+                        </span>
+                        <span class="like-count">{{ activity.get_like_count }}</span>
+                    </button>
+                    {% else %}
+                    <a href="{% url 'community:login' %}?next={{ request.path }}"
+                        class="flex items-center gap-1.5 text-sm font-semibold text-[#5F5E5A] hover:text-[#E24B4A] transition">
+                        <i class="far fa-heart text-base"></i>
+                        <span class="like-count">{{ activity.get_like_count }}</span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <a href="{% if activity.type == 'Thread' %}{% url 'community:thread_detail' activity.id %}{% else %}{% url 'community:guide_detail' activity.id %}{% endif %}#comments"
+                    class="flex items-center gap-1.5 text-sm font-semibold text-[#5F5E5A] hover:text-[#7F77DD] transition">
+                    <i class="far fa-comment text-base"></i>
+                    <span class="comment-count">{{ activity.comments.count }}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="empty-feed-placeholder flex flex-col items-center justify-center py-10 bg-white rounded-lg shadow-sm text-center">
+    <div class="bg-gray-50 p-4 rounded-full mb-3">
+        <i class="fas fa-stream text-4xl text-gray-300"></i>
+    </div>
+    <h4 class="text-lg font-semibold text-gray-700">ไม่มีโพสต์ที่จะแสดง</h4>
+    <p class="text-gray-500 text-sm mt-1">ลองเพิ่มเพื่อนหรือตั้งกระทู้ใหม่เพื่อเริ่มต้นใช้งาน</p>
+</div>
+{% endfor %}

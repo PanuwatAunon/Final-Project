@@ -1,0 +1,660 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ group.name }} - GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Main Content (Chat & Header) -->
+        <div class="lg:col-span-3">
+            <!-- Group Header -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                <div class="bg-green-600 text-white p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-users mr-3 opacity-80"></i> {{ group.name }}
+                            </h3>
+                            <a href="{% url 'community:game_detail' group.game.id %}"
+                                class="text-green-100 hover:text-white text-sm mt-1 inline-flex items-center transition">
+                                <i class="fas fa-gamepad mr-1"></i> {{ group.game.name }}
+                            </a>
+                        </div>
+
+                        <div class="flex gap-2">
+                            {% if is_member %}
+                            <form method="post" action="{% url 'community:leave_group' group.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    class="bg-white/20 hover:bg-white/30 text-white border border-white/40 px-4 py-2 rounded-lg text-sm font-medium transition backdrop-blur-sm flex items-center">
+                                    <i class="fas fa-sign-out-alt mr-2"></i> ออกจากกลุ่ม
+                                </button>
+                            </form>
+                            {% elif user.is_authenticated %}
+                            <a href="{% url 'community:join_group' group.id %}"
+                                class="bg-white text-green-600 hover:bg-green-50 px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm flex items-center">
+                                <i class="fas fa-sign-in-alt mr-2"></i> เข้าร่วมกลุ่ม
+                            </a>
+                            {% endif %}
+
+                            {% if user == group.creator or user.is_staff %}
+                            <form method="post" action="{% url 'community:delete_group' group.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm flex items-center"
+                                    onclick="return confirm('คุณแน่ใจว่าต้องการลบกลุ่มนี้? การกระทำนี้ไม่สามารถย้อนกลับได้')">
+                                    <i class="fas fa-trash mr-2"></i> ลบกลุ่ม
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    {% if group.description %}
+                    <p class="text-gray-600 mb-6 border-b border-gray-100 pb-4">{{ group.description }}</p>
+                    {% endif %}
+
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h5 class="text-xl font-bold text-gray-800" id="groupMemberCount">{{ group.members.count }}</h5>
+                            <small class="text-gray-500 uppercase tracking-wide text-xs">สมาชิก</small>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h5 class="text-xl font-bold text-gray-800" id="groupMessageCount">{{ total_messages_count|default:chat_messages|length }}</h5>
+                            <small class="text-gray-500 uppercase tracking-wide text-xs">ข้อความ</small>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg flex flex-col justify-center items-center">
+                            <a href="{% url 'community:user_profile' group.creator.username %}"
+                                class="text-green-600 font-bold hover:underline mb-1 text-sm block truncate w-full">
+                                {{ group.creator.username }}
+                            </a>
+                            <small class="text-gray-500 uppercase tracking-wide text-xs">ผู้สร้าง</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Section -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden flex flex-col h-[600px]">
+                <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                    <h5 class="font-bold text-gray-700 flex items-center">
+                        <i class="fas fa-comments mr-2 text-green-500"></i> ข้อความในกลุ่ม
+                    </h5>
+                </div>
+
+                <div class="flex-grow p-4 overflow-y-auto space-y-4 bg-gray-100/50" id="chatContainer">
+                    {% if chat_messages %}
+                    {% for message in chat_messages %}
+                    <div class="group/msg flex flex-col {% if message.sender == user %}items-end{% else %}items-start{% endif %} mb-4"
+                        id="group-msg-container-{{ message.id }}"
+                        data-is-me="{% if message.sender == user %}true{% else %}false{% endif %}">
+                        <div class="flex items-end max-w-[85%] md:max-w-[75%] gap-2 {% if message.sender == user %}flex-row-reverse{% endif %}">
+                            {% if message.sender != user %}
+                            {% if message.sender.profile.avatar %}
+                            <img src="{{ message.sender.profile.avatar.url }}"
+                                class="w-8 h-8 rounded-full shadow-sm object-cover mb-1 shrink-0"
+                                alt="{{ message.sender.username }}">
+                            {% else %}
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mb-1 text-gray-400 shrink-0">
+                                <i class="fas fa-user text-xs"></i>
+                            </div>
+                            {% endif %}
+                            {% endif %}
+
+                            <div class="flex flex-col {% if message.sender == user %}items-end{% else %}items-start{% endif %}">
+                                {% if message.sender != user %}
+                                <a href="{% url 'community:user_profile' message.sender.username %}"
+                                    class="text-xs text-gray-500 mb-1 hover:underline ml-1">
+                                    {{ message.sender.username }}
+                                </a>
+                                {% endif %}
+
+                                {% if message.is_deleted %}
+                                <div class="bg-gray-200/80 text-gray-500 rounded-2xl {% if message.sender == user %}rounded-tr-none{% else %}rounded-tl-none{% endif %} px-4 py-2 text-sm italic flex items-center gap-1.5 border border-gray-300/50">
+                                    <i class="fas fa-ban text-xs"></i> ข้อความถูกยกเลิก
+                                </div>
+                                {% else %}
+                                <div class="flex items-center gap-1.5 {% if message.sender == user %}flex-row-reverse{% endif %}">
+                                    {% if user == message.sender or user.is_staff %}
+                                    <button type="button"
+                                        onclick="deleteGroupMessage({{ message.id }}, 'group-msg-container-{{ message.id }}')"
+                                        title="ยกเลิกข้อความ"
+                                        class="opacity-0 group-hover/msg:opacity-100 text-gray-400 hover:text-red-500 transition text-xs p-1">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {% endif %}
+
+                                    <div class="px-4 py-2.5 rounded-2xl shadow-sm text-sm break-words relative 
+                                                {% if message.sender == user %}
+                                                    bg-green-500 text-white rounded-tr-none
+                                                {% else %}
+                                                    bg-white text-gray-800 border border-gray-200 rounded-tl-none
+                                                {% endif %}">
+                                        {% if message.image %}
+                                        <img src="{{ message.image.url }}" onclick="openImageModal(this.src)"
+                                            class="rounded-lg mb-2 max-h-64 object-cover w-full cursor-pointer hover:opacity-90 transition shadow-sm"
+                                            alt="Attachment">
+                                        {% endif %}
+                                        {% if message.video %}
+                                        <div class="aspect-video mb-2 rounded-lg overflow-hidden bg-black/20">
+                                            <video controls class="w-full h-full">
+                                                <source src="{{ message.video.url }}" type="video/mp4">
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        </div>
+                                        {% endif %}
+                                        {% if message.content %}
+                                        <p class="text-[15px] leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 mt-1 mx-1 {% if message.sender != user %}ml-10{% endif %}">
+                            <small class="text-[10px] text-gray-400">{{ message.created_at|date:"d M H:i" }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="h-full flex flex-col items-center justify-center text-gray-400">
+                        <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-comment-slash text-2xl opacity-50"></i>
+                        </div>
+                        <p>ยังไม่มีข้อความในกลุ่มนี้</p>
+                        <p class="text-sm">เริ่มต้นทักทายเป็นคนแรกเลย!</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if is_member and user.is_authenticated %}
+                <div class="p-4 bg-white border-t border-gray-100">
+                    <form id="groupChatForm" method="post" action="{% url 'community:send_message' %}" enctype="multipart/form-data" class="relative">
+                        {% csrf_token %}
+                        <input type="hidden" name="group_id" value="{{ group.id }}">
+
+                        <!-- Attachment Preview -->
+                        <div class="mb-2 hidden" id="previewArea">
+                            <div class="inline-flex items-center bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 pr-2">
+                                <i class="fas fa-paperclip text-gray-500 mr-2 text-sm"></i>
+                                <span id="fileName" class="text-xs text-gray-700 font-medium truncate max-w-[150px]">ไฟล์แนบ</span>
+                                <button type="button"
+                                    class="ml-2 w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition"
+                                    onclick="clearAttachments()">
+                                    <i class="fas fa-times text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <!-- Attachment Buttons -->
+                            <div class="flex space-x-1">
+                                <button type="button"
+                                    class="w-9 h-9 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition"
+                                    onclick="document.getElementById('imageInput').click()" title="ส่งรูปภาพ">
+                                    <i class="fas fa-image text-lg"></i>
+                                </button>
+                                <button type="button"
+                                    class="w-9 h-9 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition"
+                                    onclick="document.getElementById('videoInput').click()" title="ส่งวิดีโอ">
+                                    <i class="fas fa-video text-lg"></i>
+                                </button>
+                            </div>
+
+                            <input type="file" name="image" id="imageInput" class="hidden" accept="image/*"
+                                onchange="handleFileSelect(this, 'รูปภาพ')">
+                            <input type="file" name="video" id="videoInput" class="hidden" accept="video/*"
+                                onchange="handleFileSelect(this, 'วิดีโอ')">
+
+                            <input type="text"
+                                class="flex-grow rounded-full border-gray-300 bg-gray-50 focus:bg-white focus:border-green-500 focus:ring focus:ring-green-500/20 px-4 py-2 shadow-sm transition text-sm"
+                                name="content" id="messageContentInput" placeholder="พิมพ์ข้อความ..." autocomplete="off">
+                            <button
+                                class="bg-green-500 hover:bg-green-600 text-white w-10 h-10 rounded-full shadow-md flex items-center justify-center transition transform active:scale-95 flex-shrink-0"
+                                type="submit" id="sendBtn">
+                                <i class="fas fa-paper-plane text-sm ml-0.5"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar (Members) -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-md overflow-hidden h-full max-h-[800px] flex flex-col">
+                <div class="p-4 bg-gray-50 border-b border-gray-100">
+                    <h6 class="font-bold text-gray-700 flex items-center mb-0">
+                        <i class="fas fa-users mr-2 text-blue-500"></i> สมาชิก (<span id="sideMemberCount">{{ group.members.count }}</span>)
+                    </h6>
+                </div>
+                <div class="p-2 overflow-y-auto custom-scrollbar flex-grow">
+                    {% for member in group.members.all %}
+                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition group">
+                        <a href="{% url 'community:user_profile' member.username %}"
+                            class="flex items-center text-gray-700 hover:text-green-600 transition">
+                            <div class="relative mr-2">
+                                {% if member.profile.avatar %}
+                                <img src="{{ member.profile.avatar.url }}"
+                                    class="w-8 h-8 rounded-full object-cover border border-gray-100"
+                                    alt="{{ member.username }}">
+                                {% else %}
+                                <div
+                                    class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                    <i class="fas fa-user text-xs"></i>
+                                </div>
+                                {% endif %}
+                                <span
+                                    class="absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-white rounded-full {% if member.profile.is_online %}bg-green-500{% else %}bg-gray-300{% endif %}"
+                                    title="{% if member.profile.is_online %}ออนไลน์{% else %}ออฟไลน์{% endif %}">
+                                </span>
+                            </div>
+                            <span class="text-sm font-medium">{{ member.username }}</span>
+                        </a>
+                        {% if group.creator == member %}
+                        <span
+                            class="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-200">
+                            ผู้สร้าง
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Scroll chat to bottom on initial load
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function handleFileSelect(input, type) {
+        if (input.files && input.files[0]) {
+            const fileName = input.files[0].name;
+            const previewArea = document.getElementById('previewArea');
+            const fileNameSpan = document.getElementById('fileName');
+            if (fileNameSpan) fileNameSpan.innerText = fileName;
+            if (previewArea) previewArea.classList.remove('hidden');
+        }
+    }
+
+    function clearAttachments() {
+        const imageInput = document.getElementById('imageInput');
+        const videoInput = document.getElementById('videoInput');
+        const previewArea = document.getElementById('previewArea');
+        if (imageInput) imageInput.value = '';
+        if (videoInput) videoInput.value = '';
+        if (previewArea) previewArea.classList.add('hidden');
+    }
+
+    function getCsrfToken() {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === 'csrftoken=') {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        if (!cookieValue) {
+            const el = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (el) cookieValue = el.value;
+        }
+        return cookieValue || '';
+    }
+
+    // Apply "ข้อความถูกยกเลิก" UI to an existing container
+    function applyCancelledUI(containerEl) {
+        if (!containerEl) return;
+        const isMe = containerEl.getAttribute('data-is-me') === 'true' || containerEl.classList.contains('items-end');
+
+        // Remove delete button if any
+        const delBtn = containerEl.querySelector('button[title*="ยกเลิก"]');
+        if (delBtn) delBtn.remove();
+
+        const bubbleCol = containerEl.querySelector('.flex.flex-col.items-end, .flex.flex-col.items-start');
+        if (bubbleCol) {
+            const userLink = isMe ? null : bubbleCol.querySelector('a');
+            const userLinkHtml = userLink ? userLink.outerHTML : '';
+
+            bubbleCol.innerHTML = `
+                ${userLinkHtml}
+                <div class="bg-gray-200/80 text-gray-500 rounded-2xl ${isMe ? 'rounded-tr-none' : 'rounded-tl-none'} px-4 py-2 text-sm italic flex items-center gap-1.5 border border-gray-300/50">
+                    <i class="fas fa-ban text-xs"></i> ข้อความถูกยกเลิก
+                </div>
+            `;
+        }
+    }
+
+    // Delete (Unsend) group message via AJAX
+    function deleteGroupMessage(messageId, elementId) {
+        if (!confirm('ต้องการยกเลิกข้อความนี้ใช่หรือไม่?')) return;
+
+        fetch(`/group/${groupId}/message/${messageId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    applyCancelledUI(el);
+                }
+            } else if (data.message) {
+                alert(data.message);
+            }
+        })
+        .catch(err => console.error('Error deleting group message:', err));
+    }
+
+    // Construct HTML for a message object
+    function buildMessageHtml(msg) {
+        const isMe = msg.is_me;
+        let mediaHtml = '';
+        if (msg.image_url) {
+            mediaHtml += `<img src="${msg.image_url}" onclick="openImageModal(this.src)" class="rounded-lg mb-2 max-h-64 object-cover w-full cursor-pointer hover:opacity-90 transition shadow-sm" alt="Attachment">`;
+        }
+        if (msg.video_url) {
+            mediaHtml += `<div class="aspect-video mb-2 rounded-lg overflow-hidden bg-black/20">
+                <video controls class="w-full h-full"><source src="${msg.video_url}" type="video/mp4"></video></div>`;
+        }
+
+        let textHtml = '';
+        if (msg.content) {
+            const safeDiv = document.createElement('div');
+            safeDiv.innerText = msg.content;
+            textHtml = `<p class="text-[15px] leading-relaxed whitespace-pre-wrap">${safeDiv.innerHTML}</p>`;
+        }
+
+        if (msg.is_deleted) {
+            if (isMe) {
+                return `
+                <div class="group/msg flex flex-col items-end mb-4" id="group-msg-container-${msg.id}" data-is-me="true">
+                    <div class="flex items-end max-w-[85%] md:max-w-[75%] gap-2 flex-row-reverse">
+                        <div class="flex flex-col items-end">
+                            <div class="bg-gray-200/80 text-gray-500 rounded-2xl rounded-tr-none px-4 py-2 text-sm italic flex items-center gap-1.5 border border-gray-300/50">
+                                <i class="fas fa-ban text-xs"></i> ข้อความถูกยกเลิก
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1 mx-1">
+                        <small class="text-[10px] text-gray-400">${msg.created_at}</small>
+                    </div>
+                </div>`;
+            } else {
+                const avatarHtml = msg.sender_avatar
+                    ? `<img src="${msg.sender_avatar}" class="w-8 h-8 rounded-full shadow-sm object-cover mb-1 shrink-0" alt="${msg.sender_username}">`
+                    : `<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mb-1 text-gray-400 shrink-0"><i class="fas fa-user text-xs"></i></div>`;
+                return `
+                <div class="group/msg flex flex-col items-start mb-4" id="group-msg-container-${msg.id}" data-is-me="false">
+                    <div class="flex items-end max-w-[85%] md:max-w-[75%] gap-2">
+                        ${avatarHtml}
+                        <div class="flex flex-col items-start">
+                            <a href="/user/${msg.sender_username}/" class="text-xs text-gray-500 mb-1 hover:underline ml-1">${msg.sender_username}</a>
+                            <div class="bg-gray-200/80 text-gray-500 rounded-2xl rounded-tl-none px-4 py-2 text-sm italic flex items-center gap-1.5 border border-gray-300/50">
+                                <i class="fas fa-ban text-xs"></i> ข้อความถูกยกเลิก
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1 mx-1 ml-10">
+                        <small class="text-[10px] text-gray-400">${msg.created_at}</small>
+                    </div>
+                </div>`;
+            }
+        }
+
+        if (isMe) {
+            const deleteBtnHtml = msg.can_delete ? `
+                <button type="button" onclick="deleteGroupMessage(${msg.id}, 'group-msg-container-${msg.id}')" title="ยกเลิกข้อความ" class="opacity-0 group-hover/msg:opacity-100 text-gray-400 hover:text-red-500 transition text-xs p-1">
+                    <i class="fas fa-trash-alt"></i>
+                </button>` : '';
+
+            return `
+            <div class="group/msg flex flex-col items-end mb-4" id="group-msg-container-${msg.id}" data-is-me="true">
+                <div class="flex items-end max-w-[85%] md:max-w-[75%] gap-2 flex-row-reverse">
+                    <div class="flex flex-col items-end">
+                        <div class="flex items-center gap-1.5 flex-row-reverse">
+                            ${deleteBtnHtml}
+                            <div class="px-4 py-2.5 rounded-2xl shadow-sm text-sm break-words relative bg-green-500 text-white rounded-tr-none">
+                                ${mediaHtml}
+                                ${textHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 mt-1 mx-1">
+                    <small class="text-[10px] text-gray-400">${msg.created_at}</small>
+                </div>
+            </div>`;
+        } else {
+            const avatarHtml = msg.sender_avatar
+                ? `<img src="${msg.sender_avatar}" class="w-8 h-8 rounded-full shadow-sm object-cover mb-1 shrink-0" alt="${msg.sender_username}">`
+                : `<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mb-1 text-gray-400 shrink-0"><i class="fas fa-user text-xs"></i></div>`;
+
+            const deleteBtnHtml = msg.can_delete ? `
+                <button type="button" onclick="deleteGroupMessage(${msg.id}, 'group-msg-container-${msg.id}')" title="ยกเลิกข้อความ" class="opacity-0 group-hover/msg:opacity-100 text-gray-400 hover:text-red-500 transition text-xs p-1">
+                    <i class="fas fa-trash-alt"></i>
+                </button>` : '';
+
+            return `
+            <div class="group/msg flex flex-col items-start mb-4" id="group-msg-container-${msg.id}" data-is-me="false">
+                <div class="flex items-end max-w-[85%] md:max-w-[75%] gap-2">
+                    ${avatarHtml}
+                    <div class="flex flex-col items-start">
+                        <a href="/user/${msg.sender_username}/" class="text-xs text-gray-500 mb-1 hover:underline ml-1">${msg.sender_username}</a>
+                        <div class="flex items-center gap-1.5">
+                            <div class="px-4 py-2.5 rounded-2xl shadow-sm text-sm break-words relative bg-white text-gray-800 border border-gray-200 rounded-tl-none">
+                                ${mediaHtml}
+                                ${textHtml}
+                            </div>
+                            ${deleteBtnHtml}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 mt-1 mx-1 ml-10">
+                    <small class="text-[10px] text-gray-400">${msg.created_at}</small>
+                </div>
+            </div>`;
+        }
+    }
+
+    // Append new message to container
+    function appendGroupMessage(msg) {
+        const existing = document.getElementById('group-msg-container-' + msg.id);
+        if (existing) {
+            if (msg.is_deleted && !existing.querySelector('.fa-ban')) {
+                applyCancelledUI(existing);
+            }
+            return;
+        }
+
+        const container = document.getElementById('chatContainer');
+        if (!container) return;
+
+        const emptyState = container.querySelector('.flex-col.items-center.justify-center');
+        if (emptyState) emptyState.remove();
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = buildMessageHtml(msg).trim();
+        const newEl = tempDiv.firstElementChild;
+        if (newEl) {
+            container.appendChild(newEl);
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    // Real-time Polling System
+    let lastGroupMessageId = {{ last_message_id|default:0 }};
+    const groupId = {{ group.id }};
+
+    function fetchGroupMessages() {
+        fetch(`/group/${groupId}/poll/?last_id=${lastGroupMessageId}`)
+            .then(response => {
+                if (response.status === 404) {
+                    window.location.href = "{% url 'community:game_list' %}";
+                    return null;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return;
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                    return;
+                }
+
+                // Check for real-time unsent / cancelled messages
+                if (data.deleted_ids && data.deleted_ids.length > 0) {
+                    data.deleted_ids.forEach(delId => {
+                        const el = document.getElementById('group-msg-container-' + delId);
+                        if (el && !el.querySelector('.fa-ban')) {
+                            applyCancelledUI(el);
+                        }
+                    });
+                }
+
+                // Update real-time counts
+                if (data.total_messages !== undefined) {
+                    const countEl = document.getElementById('groupMessageCount');
+                    if (countEl) countEl.innerText = data.total_messages;
+                }
+                if (data.member_count !== undefined) {
+                    const mCountEl = document.getElementById('groupMemberCount');
+                    if (mCountEl) mCountEl.innerText = data.member_count;
+                    const sideMCountEl = document.getElementById('sideMemberCount');
+                    if (sideMCountEl) sideMCountEl.innerText = data.member_count;
+                }
+
+                // Append new incoming messages
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        if (msg.id > lastGroupMessageId) {
+                            lastGroupMessageId = msg.id;
+                        }
+                        appendGroupMessage(msg);
+                    });
+                }
+            })
+            .catch(err => console.error('Error polling group messages:', err));
+    }
+
+    // Handle AJAX Message Submission
+    const chatForm = document.getElementById('groupChatForm');
+    if (chatForm) {
+        chatForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const contentInput = document.getElementById('messageContentInput');
+            const imageInput = document.getElementById('imageInput');
+            const videoInput = document.getElementById('videoInput');
+
+            const contentVal = contentInput ? contentInput.value.trim() : '';
+            const hasImage = imageInput && imageInput.files && imageInput.files.length > 0;
+            const hasVideo = videoInput && videoInput.files && videoInput.files.length > 0;
+
+            if (!contentVal && !hasImage && !hasVideo) {
+                return;
+            }
+
+            const formData = new FormData(chatForm);
+            const sendBtn = document.getElementById('sendBtn');
+            if (sendBtn) sendBtn.disabled = true;
+
+            fetch(chatForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (sendBtn) sendBtn.disabled = false;
+                if (data.status === 'success' && data.message) {
+                    if (contentInput) contentInput.value = '';
+                    clearAttachments();
+                    if (data.message.id > lastGroupMessageId) {
+                        lastGroupMessageId = data.message.id;
+                    }
+                    appendGroupMessage(data.message);
+
+                    const countEl = document.getElementById('groupMessageCount');
+                    if (countEl) {
+                        const cur = parseInt(countEl.innerText) || 0;
+                        countEl.innerText = cur + 1;
+                    }
+                } else if (data.message) {
+                    alert(data.message);
+                }
+            })
+            .catch(err => {
+                if (sendBtn) sendBtn.disabled = false;
+                console.error('Error sending message via AJAX:', err);
+                chatForm.submit(); // fallback to normal submit
+            });
+        });
+    }
+
+    function openImageModal(src) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        if (modal && modalImg) {
+            modalImg.src = src;
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+                modal.classList.add('flex', 'opacity-100', 'pointer-events-auto');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeImageModal() {
+        const modal = document.getElementById('imageModal');
+        if (modal) {
+            modal.classList.remove('opacity-100', 'pointer-events-auto');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeImageModal();
+        }
+    });
+
+    // Poll every 3 seconds
+    setInterval(fetchGroupMessages, 3000);
+</script>
+
+<!-- Fullscreen Image Viewer Modal -->
+<div id="imageModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md items-center justify-center p-4 transition-opacity duration-300 opacity-0 pointer-events-none" onclick="closeImageModal()">
+    <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
+        <button type="button" onclick="closeImageModal()" class="absolute -top-12 right-0 text-white/80 hover:text-white text-3xl font-bold transition focus:outline-none">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="modalImage" src="" alt="Full view" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-white/10">
+    </div>
+</div>
+{% endblock %}

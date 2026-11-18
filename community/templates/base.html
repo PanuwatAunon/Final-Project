@@ -1,0 +1,559 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}commuGame - ชุมชนเกมเมอร์{% endblock %}</title>
+
+    <!-- Bundled CSS (Main Stylesheet containing Fonts, Icons, Scrollbar, Design Tokens, Admin Buttons) -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#7F77DD',
+                            hover: '#6A62C4',
+                            dark: '#26215C',
+                            light: '#EEEDFA',
+                        },
+                        mint: {
+                            DEFAULT: '#1D9E75',
+                            dark: '#04342C',
+                            light: '#E6F6F2',
+                        },
+                        pinkAccent: {
+                            DEFAULT: '#D4537E',
+                            dark: '#4B1528',
+                            light: '#FCEBF1',
+                        },
+                        yellowOrange: {
+                            DEFAULT: '#EF9F27',
+                            dark: '#854F0B',
+                            light: '#FEF5E8',
+                        },
+                        danger: {
+                            DEFAULT: '#E24B4A',
+                            dark: '#791F1F',
+                            light: '#FCEBEB',
+                        },
+                        body: '#F1EFE8',
+                        darkText: '#2C2C2A',
+                        subText: '#5F5E5A',
+                        borderGray: '#D3D1C7',
+                    },
+                    fontFamily: {
+                        sans: ['"Prompt"', '"Inter"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="text-[#2C2C2A] antialiased flex flex-col min-h-screen bg-[#F1EFE8]">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-[#D3D1C7] shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a class="text-[#7F77DD] text-2xl font-bold flex items-center space-x-2 tracking-tight" href="{% url 'community:home' %}">
+                    <div class="w-9 h-9 rounded-xl bg-[#EEEDFA] flex items-center justify-center text-[#7F77DD] shadow-sm">
+                        <i class="fas fa-gamepad text-xl"></i>
+                    </div>
+                    <span>commu<span class="text-[#2C2C2A] font-extrabold">Game</span></span>
+                </a>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden text-[#5F5E5A] hover:text-[#7F77DD] focus:outline-none p-2">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="{% url 'community:home' %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] transition font-medium text-sm">หน้าแรก</a>
+                    <a href="{% url 'community:game_list' %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] transition font-medium text-sm">เกม</a>
+                    <a href="{% url 'community:ranking' %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] transition font-medium text-sm">ตารางอันดับ</a>
+
+                    {% if request.user.is_authenticated %}
+                    <a href="{% url 'community:notifications' %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] transition font-medium text-sm flex items-center gap-1.5 relative">
+                        <i class="fas fa-bell text-[#5F5E5A]"></i> การแจ้งเตือน
+                        <span id="notif-badge-desktop"
+                            class="absolute -top-2.5 -right-2.5 bg-[#E24B4A] text-white text-[9px] font-bold h-4 min-w-[1rem] px-1 flex items-center justify-center rounded-full border border-white shadow-sm leading-none {% if unread_notifications_count == 0 %}hidden{% endif %}">
+                            {{ unread_notifications_count }}
+                        </span>
+                    </a>
+                    <a href="{% url 'community:inbox' %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] transition font-medium text-sm flex items-center gap-1.5 relative">
+                        <i class="fas fa-envelope text-[#5F5E5A]"></i> ข้อความ
+                        <span id="msg-badge-desktop"
+                            class="absolute -top-2.5 -right-2.5 bg-[#E24B4A] text-white text-[9px] font-bold h-4 min-w-[1rem] px-1 flex items-center justify-center rounded-full border border-white shadow-sm leading-none {% if unread_messages_count == 0 %}hidden{% endif %}">
+                            {{ unread_messages_count }}
+                        </span>
+                    </a>
+                    <a href="{% url 'community:friends_list' %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] transition font-medium text-sm flex items-center gap-1.5">
+                        <i class="fas fa-users text-[#5F5E5A]"></i> เพื่อน
+                    </a>
+
+                    <!-- User Dropdown -->
+                    <div class="relative group">
+                        <button id="user-menu-btn"
+                            class="text-[#2C2C2A] hover:text-[#7F77DD] transition font-medium flex items-center gap-2 focus:outline-none bg-[#EEEDFA] px-3.5 py-1.5 rounded-full border border-[#D3D1C7]">
+                            <i class="fas fa-user-circle text-lg text-[#7F77DD]"></i>
+                            <span class="text-sm font-semibold">{{ request.user.username }}</span>
+                            <i class="fas fa-chevron-down text-xs text-[#5F5E5A]"></i>
+                        </button>
+                        <!-- Dropdown Content -->
+                        <div id="user-menu-dropdown"
+                            class="absolute right-0 top-full pt-2 w-52 hidden group-hover:block z-50">
+                            <div class="bg-white rounded-xl shadow-xl py-2 border border-[#D3D1C7]">
+                                <a href="{% url 'community:user_profile' request.user.username %}"
+                                    class="block px-4 py-2 text-sm text-[#2C2C2A] hover:bg-[#EEEDFA] hover:text-[#7F77DD] font-medium">โปรไฟล์</a>
+                                <a href="{% url 'community:edit_profile' %}"
+                                    class="block px-4 py-2 text-sm text-[#2C2C2A] hover:bg-[#EEEDFA] hover:text-[#7F77DD] font-medium">แก้ไขโปรไฟล์</a>
+                                <button type="button" onclick="openAdminContactModal()"
+                                    class="w-full text-left px-4 py-2 text-sm text-[#2C2C2A] hover:bg-[#EEEDFA] hover:text-[#7F77DD] font-medium transition flex items-center justify-between">
+                                    <span>ข้อมูลติดต่อAdmin</span>
+                                    <i class="fas fa-headset text-xs text-[#7F77DD]"></i>
+                                </button>
+                                {% if request.user.is_staff %}
+                                <div class="border-t border-[#D3D1C7] my-1"></div>
+                                <a href="{% url 'community:backoffice_dashboard' %}"
+                                    class="flex items-center gap-2 px-4 py-2 text-sm text-[#7F77DD] hover:bg-[#EEEDFA] font-bold">
+                                    <i class="fas fa-shield-halved text-xs"></i>
+                                    <span>ศูนย์ควบคุมหลังบ้าน</span>
+                                </a>
+                                {% if request.user.is_superuser %}
+                                <a href="/admin/"
+                                    class="flex items-center gap-2 px-4 py-2 text-xs text-[#5F5E5A] hover:bg-[#EEEDFA] hover:text-[#2C2C2A] font-medium">
+                                    <i class="fas fa-cog text-xs"></i>
+                                    <span>Django Admin</span>
+                                </a>
+                                {% endif %}
+                                {% endif %}
+                                <div class="border-t border-[#D3D1C7] my-1"></div>
+                                <a href="{% url 'community:logout' %}"
+                                    class="block px-4 py-2 text-sm text-[#E24B4A] hover:bg-[#FCEBEB] font-medium">ออกจากระบบ</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center space-x-3">
+                        <a href="{% url 'community:login' %}"
+                            class="px-4 py-2 text-[#7F77DD] border border-[#7F77DD] rounded-full hover:bg-[#EEEDFA] transition font-semibold text-sm">เข้าสู่ระบบ</a>
+                        <a href="{% url 'community:register' %}"
+                            class="px-4 py-2 bg-[#7F77DD] text-white rounded-full shadow-sm hover:bg-[#6A62C4] transition font-semibold text-sm">ลงทะเบียน</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Mobile Menu (Hidden by default) -->
+            <div id="mobile-menu" class="hidden md:hidden pb-4 border-t border-[#D3D1C7] pt-3">
+                <div class="flex flex-col space-y-3">
+                    <a href="{% url 'community:home' %}" class="text-[#2C2C2A] hover:text-[#7F77DD] font-medium">หน้าแรก</a>
+                    <a href="{% url 'community:game_list' %}" class="text-[#2C2C2A] hover:text-[#7F77DD] font-medium">เกม</a>
+                    <a href="{% url 'community:ranking' %}" class="text-[#2C2C2A] hover:text-[#7F77DD] font-medium">ตารางอันดับ</a>
+                    {% if request.user.is_authenticated %}
+                    <a href="{% url 'community:notifications' %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] flex items-center justify-between font-medium">
+                        <span>การแจ้งเตือน</span>
+                        <span id="notif-badge-mobile" class="bg-[#E24B4A] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none {% if unread_notifications_count == 0 %}hidden{% endif %}">
+                            {{ unread_notifications_count }}
+                        </span>
+                    </a>
+                    <a href="{% url 'community:inbox' %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] flex items-center justify-between font-medium">
+                        <span>ข้อความ</span>
+                        <span id="msg-badge-mobile" class="bg-[#E24B4A] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none {% if unread_messages_count == 0 %}hidden{% endif %}">
+                            {{ unread_messages_count }}
+                        </span>
+                    </a>
+                    <a href="{% url 'community:friends_list' %}" class="text-[#2C2C2A] hover:text-[#7F77DD] font-medium">เพื่อน</a>
+                    {% if request.user.is_staff %}
+                    <a href="{% url 'community:backoffice_dashboard' %}" class="text-[#7F77DD] font-bold flex items-center gap-2">
+                        <i class="fas fa-shield-halved"></i>
+                        <span>ศูนย์ควบคุมหลังบ้าน</span>
+                    </a>
+                    {% endif %}
+                    <div class="border-t border-[#D3D1C7] pt-2"></div>
+                    <a href="{% url 'community:user_profile' request.user.username %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] font-medium">โปรไฟล์</a>
+                    <a href="{% url 'community:edit_profile' %}"
+                        class="text-[#2C2C2A] hover:text-[#7F77DD] font-medium">แก้ไขโปรไฟล์</a>
+                    <button type="button" onclick="openAdminContactModal()"
+                        class="text-left text-[#2C2C2A] hover:text-[#7F77DD] font-medium flex items-center gap-2 py-1">
+                        <i class="fas fa-headset text-xs text-[#7F77DD]"></i>
+                        <span>ข้อมูลติดต่อAdmin</span>
+                    </button>
+                    <a href="{% url 'community:logout' %}" class="text-[#E24B4A] font-medium">ออกจากระบบ</a>
+                    {% else %}
+                    <div class="border-t border-[#D3D1C7] pt-2 flex flex-col space-y-2">
+                        <a href="{% url 'community:login' %}" class="text-[#7F77DD] font-semibold">เข้าสู่ระบบ</a>
+                        <a href="{% url 'community:register' %}" class="text-[#7F77DD] font-semibold">ลงทะเบียน</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6 flex-grow">
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div class="p-4 rounded-lg shadow-sm border 
+                    {% if message.tags == 'success' %} bg-green-50 border-green-200 text-green-700
+                    {% elif message.tags == 'error' %} bg-red-50 border-red-200 text-red-700
+                    {% elif message.tags == 'warning' %} bg-yellow-50 border-yellow-200 text-yellow-700
+                    {% else %} bg-blue-50 border-blue-200 text-blue-700 {% endif %} flex justify-between items-center relative"
+                role="alert">
+                <span>{{ message }}</span>
+                <button onclick="this.parentElement.remove()"
+                    class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-auto">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2 font-semibold">GAMELNW Community</p>
+            <p class="text-gray-400 text-sm mb-3">&copy; 2025 All rights reserved.</p>
+            <div>
+                <button type="button" onclick="openAdminContactModal()" 
+                    class="inline-flex items-center gap-2 text-xs text-gray-300 hover:text-white bg-gray-700/80 hover:bg-gray-700 px-3.5 py-1.5 rounded-full transition shadow-sm">
+                    <i class="fas fa-headset text-[#7F77DD]"></i>
+                    <span>ข้อมูลติดต่อAdmin</span>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Admin Contact Modal (Drop-down popup) -->
+    <div id="admin-contact-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <!-- Backdrop Overlay with blur -->
+        <div id="admin-contact-backdrop" 
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 opacity-0" 
+            onclick="closeAdminContactModal()"></div>
+
+        <!-- Modal Dialog (Drops down with smooth spring/slide transition) -->
+        <div id="admin-contact-dialog" 
+            class="relative bg-white rounded-3xl shadow-2xl border border-[#D3D1C7] w-full max-w-md overflow-hidden transform -translate-y-8 opacity-0 scale-95 transition-all duration-300 ease-out z-10">
+            
+            <!-- Header Banner -->
+            <div class="relative bg-gradient-to-r from-[#26215C] via-[#7F77DD] to-[#9188F0] p-6 text-white text-center overflow-hidden">
+                <!-- Background decorative shapes -->
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                <div class="absolute -bottom-8 -left-8 w-24 h-24 bg-[#EF9F27]/20 rounded-full blur-xl"></div>
+                
+                <!-- Close Button -->
+                <button type="button" onclick="closeAdminContactModal()" 
+                    class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition focus:outline-none"
+                    aria-label="ปิด">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+
+                <!-- Icon Badge -->
+                <div class="w-16 h-16 mx-auto mb-3 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner border border-white/30 backdrop-blur-md">
+                    <i class="fas fa-headset text-3xl text-white"></i>
+                </div>
+
+                <!-- Title & Subtitle -->
+                <h3 class="text-xl font-extrabold tracking-tight">ข้อมูลติดต่อ Admin</h3>
+                <p class="text-white/80 text-xs mt-1">ทีมงาน commuGame พร้อมให้บริการและช่วยเหลือคุณ</p>
+            </div>
+
+            <!-- Body Contact Info -->
+            <div class="p-6 space-y-4 bg-[#FAFAFA]">
+                
+                <!-- Email Contact Card -->
+                <div class="bg-white rounded-2xl p-4 border border-[#D3D1C7] shadow-sm hover:border-[#7F77DD] transition group">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-[#EEEDFA] text-[#7F77DD] flex items-center justify-center font-bold">
+                                <i class="fas fa-envelope text-base"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-[#5F5E5A] uppercase tracking-wider block">อีเมล (Email)</span>
+                                <span class="text-[11px] text-gray-400">ติดต่อผ่านทางจดหมายอิเล็กทรอนิกส์</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[#F1EFE8]/70 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2 border border-[#D3D1C7]/60">
+                        <span id="admin-email-text" class="font-semibold text-sm text-[#2C2C2A] select-all truncate">
+                            top0839467818@gmail.com
+                        </span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="copyContactText('top0839467818@gmail.com', this)" 
+                                class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#EEEDFA] text-[#7F77DD] border border-[#D3D1C7] hover:border-[#7F77DD] transition flex items-center gap-1 shadow-xs">
+                                <i class="far fa-copy text-xs"></i>
+                                <span>คัดลอก</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phone Contact Card -->
+                <div class="bg-white rounded-2xl p-4 border border-[#D3D1C7] shadow-sm hover:border-[#1D9E75] transition group">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-[#E6F6F2] text-[#1D9E75] flex items-center justify-center font-bold">
+                                <i class="fas fa-phone-alt text-base"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-[#5F5E5A] uppercase tracking-wider block">เบอร์โทรศัพท์ (Phone)</span>
+                                <span class="text-[11px] text-gray-400">ติดต่อสอบถามเร่งด่วน</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#F1EFE8]/70 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2 border border-[#D3D1C7]/60">
+                        <span id="admin-phone-text" class="font-bold text-base text-[#2C2C2A] tracking-wider select-all">
+                            093-856-2166
+                        </span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="copyContactText('0839467818', this)" 
+                                class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#E6F6F2] text-[#1D9E75] border border-[#D3D1C7] hover:border-[#1D9E75] transition flex items-center gap-1 shadow-xs">
+                                <i class="far fa-copy text-xs"></i>
+                                <span>คัดลอก</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Hours Info -->
+                <div class="flex items-start gap-2.5 p-3 rounded-xl bg-[#EEEDFA]/60 border border-[#7F77DD]/20 text-[#5F5E5A] text-xs leading-relaxed">
+                    <i class="fas fa-clock text-[#7F77DD] mt-0.5 shrink-0"></i>
+                    <div>
+                        <span class="font-semibold text-[#2C2C2A]">เวลาทำการ:</span> ทุกวันเสาร์-อาทิตย์ เวลา 12:00 - 21:00 น.
+                        <p class="text-[11px] text-[#5F5E5A]/80 mt-0.5">สามารถติดต่อเพื่อสอบถามข้อมูล แจ้งปัญหาการใช้งาน หรือขอรับความช่วยเหลือได้เช่นขอเปลี่ยนรหัสผ่าน</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer Action -->
+            <div class="px-6 py-4 bg-white border-t border-[#D3D1C7] flex justify-end">
+                <button type="button" onclick="closeAdminContactModal()" 
+                    class="w-full sm:w-auto px-6 py-2 rounded-xl bg-[#F1EFE8] hover:bg-[#E5E2D8] text-[#2C2C2A] font-semibold text-sm transition">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Simple Mobile Menu Toggle
+        document.getElementById('mobile-menu-btn').addEventListener('click', function () {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+
+        // Simple Dropdown Toggle for Mobile/Click
+        const userMenuBtn = document.getElementById('user-menu-btn');
+        const userMenuDropdown = document.getElementById('user-menu-dropdown');
+        if (userMenuBtn && userMenuDropdown) {
+            userMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userMenuDropdown.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (e) => {
+                if (!userMenuBtn.contains(e.target) && !userMenuDropdown.contains(e.target)) {
+                    userMenuDropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        // Admin Contact Modal Drop-down Functions
+        function openAdminContactModal() {
+            const modal = document.getElementById('admin-contact-modal');
+            const backdrop = document.getElementById('admin-contact-backdrop');
+            const dialog = document.getElementById('admin-contact-dialog');
+            if (!modal) return;
+
+            // Close user menu dropdown if open
+            if (userMenuDropdown) {
+                userMenuDropdown.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('overflow-hidden');
+
+            setTimeout(() => {
+                backdrop.classList.remove('opacity-0');
+                backdrop.classList.add('opacity-100');
+
+                dialog.classList.remove('-translate-y-8', 'opacity-0', 'scale-95');
+                dialog.classList.add('translate-y-0', 'opacity-100', 'scale-100');
+            }, 10);
+        }
+
+        function closeAdminContactModal() {
+            const modal = document.getElementById('admin-contact-modal');
+            const backdrop = document.getElementById('admin-contact-backdrop');
+            const dialog = document.getElementById('admin-contact-dialog');
+            if (!modal) return;
+
+            backdrop.classList.remove('opacity-100');
+            backdrop.classList.add('opacity-0');
+
+            dialog.classList.remove('translate-y-0', 'opacity-100', 'scale-100');
+            dialog.classList.add('-translate-y-8', 'opacity-0', 'scale-95');
+
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }, 300);
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('admin-contact-modal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeAdminContactModal();
+                }
+            }
+        });
+
+        // Copy contact text with tooltip/feedback
+        function copyContactText(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-xs"></i> <span>คัดลอกแล้ว!</span>';
+                btn.classList.add('bg-green-50', 'text-green-700', 'border-green-300');
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('bg-green-50', 'text-green-700', 'border-green-300');
+                }, 2000);
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+            });
+        }
+    </script>
+
+    {% if request.user.is_authenticated %}
+    <!-- Toast Notification Container -->
+    <div id="toastNotificationContainer" class="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        let lastSeenNotifId = parseInt(sessionStorage.getItem('last_seen_notif_id') || '0');
+
+        function showToastNotification(notif) {
+            const container = document.getElementById('toastNotificationContainer');
+            if (!container) return;
+
+            let iconHtml = '<i class="fas fa-bell text-lg"></i>';
+            let iconBg = 'bg-primary/10 text-primary';
+            if (notif.type === 'friend_accept') {
+                iconHtml = '<i class="fas fa-user-check text-lg"></i>';
+                iconBg = 'bg-green-100 text-green-600';
+            } else if (notif.type === 'friend_request') {
+                iconHtml = '<i class="fas fa-user-plus text-lg"></i>';
+                iconBg = 'bg-blue-100 text-blue-600';
+            }
+
+            const toast = document.createElement('div');
+            toast.className = 'pointer-events-auto flex items-center gap-3 bg-white border border-gray-200 shadow-2xl rounded-2xl p-4 max-w-sm transition-all duration-300 transform translate-x-10 opacity-0';
+            toast.innerHTML = `
+                <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
+                    ${iconHtml}
+                </div>
+                <div class="flex-grow pr-2">
+                    <p class="font-bold text-gray-800 text-sm">${notif.title}</p>
+                    <p class="text-xs text-gray-600">${notif.message}</p>
+                </div>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition p-1" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-x-10', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 6000);
+        }
+
+        function updateUnreadBadges() {
+            fetch("{% url 'community:api_unread_counts' %}")
+                .then(res => res.json())
+                .then(data => {
+                    const msgBadgeDesk = document.getElementById('msg-badge-desktop');
+                    const msgBadgeMob = document.getElementById('msg-badge-mobile');
+                    const notifBadgeDesk = document.getElementById('notif-badge-desktop');
+                    const notifBadgeMob = document.getElementById('notif-badge-mobile');
+
+                    // Messages
+                    [msgBadgeDesk, msgBadgeMob].forEach(el => {
+                        if (!el) return;
+                        if (data.unread_messages_count > 0) {
+                            el.textContent = data.unread_messages_count;
+                            el.classList.remove('hidden');
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    });
+
+                    // Notifications
+                    [notifBadgeDesk, notifBadgeMob].forEach(el => {
+                        if (!el) return;
+                        if (data.unread_notifications_count > 0) {
+                            el.textContent = data.unread_notifications_count;
+                            el.classList.remove('hidden');
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    });
+
+                    // Real-time Notification Toast & Event
+                    if (data.latest_notification) {
+                        const notif = data.latest_notification;
+                        if (lastSeenNotifId === 0) {
+                            lastSeenNotifId = notif.id;
+                            sessionStorage.setItem('last_seen_notif_id', lastSeenNotifId);
+                        } else if (notif.id > lastSeenNotifId) {
+                            lastSeenNotifId = notif.id;
+                            sessionStorage.setItem('last_seen_notif_id', lastSeenNotifId);
+                            showToastNotification(notif);
+                            window.dispatchEvent(new CustomEvent('new_notification', { detail: notif }));
+                        }
+                    }
+                })
+                .catch(err => {});
+        }
+        // Poll every 3 seconds for real-time unread badge updates
+        setInterval(updateUnreadBadges, 3000);
+    </script>
+    {% endif %}
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

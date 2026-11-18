@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+
+{% block title %}แก้ไขกระทู้ - {{ thread.title }} | GameCommu{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-8 max-w-4xl">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- ===== LEFT COLUMN: Main Form ===== -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Breadcrumb Nav -->
+            <nav class="flex items-center text-sm text-[#5F5E5A] space-x-2">
+                <a href="{% url 'community:home' %}" class="hover:text-[#7F77DD] transition">
+                    <i class="fas fa-home mr-1"></i>หน้าแรก
+                </a>
+                <i class="fas fa-chevron-right text-[10px] text-[#D3D1C7]"></i>
+                <a href="{% url 'community:thread_detail' thread.id %}"
+                    class="hover:text-[#7F77DD] transition truncate max-w-[150px]">
+                    {{ thread.title }}
+                </a>
+                <i class="fas fa-chevron-right text-[10px] text-[#D3D1C7]"></i>
+                <span class="text-[#7F77DD] font-semibold">แก้ไขกระทู้</span>
+            </nav>
+
+            <!-- Header -->
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-[#2C2C2A] flex items-center gap-3">
+                    <div
+                        class="w-11 h-11 bg-gradient-to-br from-[#7F77DD] to-[#6A62C4] rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+                        <i class="fas fa-edit text-white text-lg"></i>
+                    </div>
+                    แก้ไขกระทู้
+                </h1>
+                <p class="text-[#5F5E5A] text-sm mt-2 ml-14">ปรับปรุงเนื้อหา หัวข้อ หรือการมองเห็นของกระทู้ของคุณ</p>
+            </div>
+
+            {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                <div
+                    class="p-4 rounded-xl text-sm flex items-center gap-3 {% if message.tags == 'error' %}bg-[#FCEBEB] text-[#791F1F] border border-[#E24B4A]/30{% else %}bg-[#EEEDFA] text-[#26215C] border border-[#7F77DD]/30{% endif %}">
+                    <i class="fas fa-info-circle text-base"></i> {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="POST" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+
+                <!-- Card: เนื้อหาและการมองเห็น -->
+                <div class="bg-white rounded-2xl border border-[#D3D1C7] shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-[#D3D1C7] bg-gradient-to-r from-[#EEEDFA] to-white">
+                        <h3 class="text-sm font-bold text-[#2C2C2A] flex items-center">
+                            <span
+                                class="w-6 h-6 bg-[#7F77DD] text-white rounded-md flex items-center justify-center text-xs mr-2.5 font-bold shadow-sm">
+                                <i class="fas fa-pen text-[10px]"></i>
+                            </span>
+                            แก้ไขเนื้อหากระทู้
+                        </h3>
+                    </div>
+                    <div class="p-6 space-y-5">
+                        {% if form.visibility %}
+                        <div>
+                            <label for="{{ form.visibility.id_for_label }}"
+                                class="block text-xs font-bold text-[#5F5E5A] uppercase tracking-wider mb-2">
+                                <i class="fas fa-eye text-[#7F77DD] mr-1.5"></i> การมองเห็น
+                            </label>
+                            {{ form.visibility }}
+                            {% if form.visibility.errors %}
+                            <p class="mt-1.5 text-xs text-[#E24B4A] font-medium"><i
+                                    class="fas fa-exclamation-circle mr-1"></i>{{ form.visibility.errors|join:", " }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <label for="id_content"
+                                class="block text-xs font-bold text-[#5F5E5A] uppercase tracking-wider mb-2">
+                                <i class="fas fa-align-left text-[#7F77DD] mr-1.5"></i> เนื้อหากระทู้
+                            </label>
+                            <textarea
+                                class="w-full rounded-xl border border-[#D3D1C7] bg-white p-4 text-[#2C2C2A] placeholder-[#5F5E5A]/50 focus:border-[#7F77DD] focus:ring-2 focus:ring-[#7F77DD]/15 outline-none transition text-sm leading-relaxed resize-y min-h-[250px] {% if form.content.errors %}border-[#E24B4A] ring-2 ring-[#E24B4A]/15{% endif %}"
+                                id="id_content" name="content" rows="10"
+                                placeholder="เขียนข้อความ บรรยายรายละเอียด หรือแบ่งปันเรื่องราวของคุณที่นี่..."
+                                required>{{ form.content.value|default:thread.content }}</textarea>
+                            {% if form.content.errors %}
+                            <p class="mt-1.5 text-xs text-[#E24B4A] font-medium"><i
+                                    class="fas fa-exclamation-circle mr-1"></i>{{ form.content.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Bar -->
+                <div
+                    class="mt-6 bg-white rounded-2xl border border-[#D3D1C7] shadow-sm px-6 py-4 flex flex-col sm:flex-row items-center gap-3">
+                    <button type="submit"
+                        class="w-full sm:w-auto flex-1 bg-gradient-to-r from-[#7F77DD] to-[#6A62C4] hover:from-[#6A62C4] hover:to-[#5A53B0] text-white font-bold py-3.5 px-8 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center text-sm group">
+                        <i class="fas fa-save mr-2 group-hover:scale-110 transition-transform"></i> บันทึกการแก้ไข
+                    </button>
+                    <a href="{% url 'community:thread_detail' thread.id %}"
+                        class="w-full sm:w-auto bg-[#F1EFE8] hover:bg-[#E8E5DB] text-[#5F5E5A] font-semibold py-3.5 px-6 rounded-xl transition border border-[#D3D1C7] flex items-center justify-center text-sm">
+                        <i class="fas fa-arrow-left mr-2"></i> ยกเลิก
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===== RIGHT COLUMN: Sidebar ===== -->
+        <div class="lg:col-span-1 space-y-6">
+
+            <!-- Post Overview Card -->
+            <div class="bg-white rounded-2xl border border-[#D3D1C7] shadow-sm overflow-hidden">
+                <div class="px-5 py-4 border-b border-[#D3D1C7] bg-gradient-to-r from-[#EEEDFA] to-white">
+                    <h4 class="text-sm font-bold text-[#2C2C2A] flex items-center">
+                        <i class="fas fa-info-circle text-[#7F77DD] mr-2"></i> สถิติกระทู้นี้
+                    </h4>
+                </div>
+                <div class="p-5 space-y-3">
+                    <div class="flex items-center justify-between text-xs text-[#5F5E5A]">
+                        <span class="flex items-center"><i class="fas fa-calendar-alt text-[#7F77DD] mr-2"></i>
+                            สร้างเมื่อ</span>
+                        <span class="font-semibold text-[#2C2C2A]">{{ thread.created_at|date:'d M Y H:i' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-[#5F5E5A]">
+                        <span class="flex items-center"><i class="fas fa-heart text-[#E24B4A] mr-2"></i> ถูกใจ</span>
+                        <span class="font-semibold text-[#2C2C2A]">{{ thread.get_like_count }} ไลค์</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-[#5F5E5A]">
+                        <span class="flex items-center"><i class="fas fa-comments text-[#1D9E75] mr-2"></i>
+                            ความคิดเห็น</span>
+                        <span class="font-semibold text-[#2C2C2A]">{{ thread.comments.count }} ความเห็น</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advice Card -->
+            <div class="bg-white rounded-2xl border border-[#D3D1C7] shadow-sm overflow-hidden">
+                <div class="px-5 py-4 border-b border-[#D3D1C7] bg-gradient-to-r from-[#FEF5E8] to-white">
+                    <h4 class="text-sm font-bold text-[#854F0B] flex items-center">
+                        <i class="fas fa-lightbulb text-[#EF9F27] mr-2"></i> ข้อแนะนำ
+                    </h4>
+                </div>
+                <ul class="p-5 space-y-3">
+                    <li class="flex items-start gap-3 text-xs text-[#5F5E5A]">
+                        <i class="fas fa-check-circle text-[#1D9E75] mt-0.5 flex-shrink-0"></i>
+                        <span>การแก้ไขกระทู้จะไม่ทำให้จำนวนไลค์หรือความคิดเห็นสูญหาย</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-xs text-[#5F5E5A]">
+                        <i class="fas fa-check-circle text-[#1D9E75] mt-0.5 flex-shrink-0"></i>
+                        <span>โปรดตรวจสอบเนื้อหาให้ดีก่อนกดบันทึก</span>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.classList.add(
+                'w-full', 'rounded-xl', 'border', 'border-[#D3D1C7]', 'bg-white',
+                'px-4', 'py-3', 'text-[#2C2C2A]', 'text-sm',
+                'focus:border-[#7F77DD]', 'focus:ring-2', 'focus:ring-[#7F77DD]/15',
+                'outline-none', 'transition', 'cursor-pointer'
+            );
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %}
